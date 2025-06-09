@@ -1,0 +1,108 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "host.exp.exponent",
+    "module": "expo.modules.clipboard",
+    "version": "7.1.4",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.13"
+    }
+  },
+  "variants": [
+    {
+      "name": "releaseVariantReleaseApiPublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-api"
+      },
+      "files": [
+        {
+          "name": "expo.modules.clipboard-7.1.4.aar",
+          "url": "expo.modules.clipboard-7.1.4.aar",
+          "size": 70729,
+          "sha512": "b77218a000416cf5a937d0641a44ae46f9ec2c10dc2c0694ba0b6d3f69f7b7429edd5f1a42747b3d103ef2d7f1e7fbb1e29f3a9d98a5560e8e34e91245cc1834",
+          "sha256": "96bce28ee247fce42d1c1fdd96b882242b419b6bd08a620feb55a2f4813c3b44",
+          "sha1": "eabc6dc02972f7c9e767032762c0f97581c929f6",
+          "md5": "6cbb7615e1970ff96fc27270fccd5d02"
+        }
+      ]
+    },
+    {
+      "name": "releaseVariantReleaseRuntimePublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib-jdk7",
+          "version": {
+            "requires": "2.0.21"
+          }
+        },
+        {
+          "group": "androidx.core",
+          "module": "core-ktx",
+          "version": {
+            "requires": "1.6.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.5.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-android",
+          "version": {
+            "requires": "1.5.2"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "expo.modules.clipboard-7.1.4.aar",
+          "url": "expo.modules.clipboard-7.1.4.aar",
+          "size": 70729,
+          "sha512": "b77218a000416cf5a937d0641a44ae46f9ec2c10dc2c0694ba0b6d3f69f7b7429edd5f1a42747b3d103ef2d7f1e7fbb1e29f3a9d98a5560e8e34e91245cc1834",
+          "sha256": "96bce28ee247fce42d1c1fdd96b882242b419b6bd08a620feb55a2f4813c3b44",
+          "sha1": "eabc6dc02972f7c9e767032762c0f97581c929f6",
+          "md5": "6cbb7615e1970ff96fc27270fccd5d02"
+        }
+      ]
+    },
+    {
+      "name": "releaseVariantReleaseSourcePublication",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "expo.modules.clipboard-7.1.4-sources.jar",
+          "url": "expo.modules.clipboard-7.1.4-sources.jar",
+          "size": 11231,
+          "sha512": "89d1d6c16a21ce183f279ad87991277af6ba406c9075b579946451751c9f15046dbc66af1e2dac85895d39dc71a656257e864417c4d1b26c239855eecfd12b2f",
+          "sha256": "2627622397b27e68d829fefc7c856068b23e3735af3c5a9c83c6876ffeb4bf97",
+          "sha1": "9d6082bfc180ca8f9e0c51a95a57c073307a3b12",
+          "md5": "07e2ae902ab03af0036f185c179aa675"
+        }
+      ]
+    }
+  ]
+}
