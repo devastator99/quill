@@ -22,7 +22,7 @@ export default function IndexScreen() {
       } else if (!userToken) {
         router.replace('/(auth)/login');
       } else {
-        router.replace('/(main)/(tabs)/chat');
+        router.replace('/(main)/(drawer)/books');
       }
     } catch (error) {
       console.error('Error checking app state:', error);

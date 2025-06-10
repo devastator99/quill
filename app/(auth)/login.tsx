@@ -30,7 +30,7 @@ export default function LoginScreen() {
         email: email,
       }));
       setLoading(false);
-      router.replace('/(main)/(tabs)/chat');
+      router.replace('/(main)/(drawer)/books');
     }, 1500);
   };
 
