@@ -40,7 +40,6 @@ export default function InputBar({
     <View
       style={[
         styles.wrapper,
-        { bottom: insets.bottom + 20 }, // float above safe area
         style,
       ]}>
       {/* Shadow wrapper */}
@@ -71,31 +70,28 @@ export default function InputBar({
 
 const styles = StyleSheet.create({
   wrapper: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
     alignItems: 'center',
+    width: '90%',
   },
   shadowContainer: {
     // match container size and borderRadius
-    width: '70%',
-    maxWidth: 600,
+    width: '90%',
     borderRadius: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
 
-    // dark, thin shadow
+    // dark, vibrant shadow
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 1, height: 1 },
-        shadowOpacity: 0.6,
-        shadowRadius: 2,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.9,
+        shadowRadius: 10,
       },
       android: {
-        elevation: 9,
+        elevation: 15,
       },
     }),
   },
@@ -104,7 +100,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 12,
     backgroundColor: '#fff',
     borderRadius: 8,
     borderWidth: 1,
@@ -113,7 +109,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontFamily: 'Urbanist_500Medium',
-    fontSize: 13,
+    fontSize: 14,
     paddingVertical: 0,
     margin: 0,
     color: '#000',

@@ -53,7 +53,7 @@ import {
     },
     question: {
       flex: 1,
-      fontSize: 12,
+      fontSize: 14,
       color: '#000',
       fontFamily: 'Urbanist_400Regular',
       lineHeight: 17,

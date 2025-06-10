@@ -79,9 +79,9 @@ const styles = StyleSheet.create({
   },
   text: {
     marginTop: 18,
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: "Urbanist_400Regular_Italic",
     color: "#000",
-    lineHeight: 17,
+    lineHeight: 19,
   },
 });
