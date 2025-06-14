@@ -115,11 +115,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1f2937',
     marginBottom: 8,
+    fontFamily: "Urbanist_600SemiBold",
   },
   version: {
     fontSize: 16,
     color: '#6b7280',
     fontWeight: '500',
+    fontFamily: "Urbanist_400Regular",
   },
   section: {
     marginBottom: 32,
@@ -197,6 +199,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
+    fontFamily: "Urbanist_400Regular",
     color: '#6b7280',
     marginLeft: 8,
     fontStyle: 'italic',

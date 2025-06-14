@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   text: {
     marginTop: 18,
     fontSize: 14,
-    fontFamily: "Urbanist_400Regular_Italic",
+    fontFamily: "Urbanist_400Regular",
     color: "#000",
     lineHeight: 19,
   },

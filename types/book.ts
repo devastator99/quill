@@ -4,6 +4,7 @@ export interface Book {
   author: string;
   coverImage: string;
   publicationYear: number;
+  progress?: number;
   rating: number;
   genre: string;
   pages: number;
