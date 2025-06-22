@@ -7,11 +7,17 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
-  StatusBar,
   Dimensions,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import { ArrowLeft, Star, Calendar, BookOpen, Hash } from "lucide-react-native";
+import {
+  ArrowLeft,
+  Star,
+  Calendar,
+  BookOpen,
+  Hash,
+  MessageCircle,
+} from "lucide-react-native";
 import { booksData } from "@/data/books";
 
 const { width } = Dimensions.get("window");
@@ -38,22 +44,6 @@ export default function BookDetailsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1f2937" />
-
-      {/* Custom Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.headerButton}
-        >
-          <ArrowLeft size={24} color="#ffffff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {book.title}
-        </Text>
-        <View style={styles.headerButton} />
-      </View>
-
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -66,7 +56,19 @@ export default function BookDetailsScreen() {
 
         {/* Book Information */}
         <View style={styles.infoContainer}>
-          <Text style={styles.title}>{book.title}</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>{book.title}</Text>
+            <TouchableOpacity
+              style={styles.chatIcon}
+              onPress={() => {
+                console.log("Navigating to chat from book:", book.title);
+                router.push("/(main)/(drawer)/chat");
+              }}
+              activeOpacity={0.7}
+            >
+              <MessageCircle size={24} color="#3b82f6" />
+            </TouchableOpacity>
+          </View>
           <Text style={styles.author}>by {book.author}</Text>
 
           {/* Rating and Metadata */}
@@ -115,29 +117,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f9fafb",
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#1f2937",
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#ffffff",
-    textAlign: "center",
-    marginHorizontal: 16,
-    fontFamily: "Urbanist_600SemiBold",
-  },
   scrollView: {
     flex: 1,
   },
@@ -167,15 +146,23 @@ const styles = StyleSheet.create({
   infoContainer: {
     backgroundColor: "#ffffff",
     paddingHorizontal: 24,
+    flex: 1,
+    flexDirection: "column",
     paddingTop: 24,
     paddingBottom: 32,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
   },
   title: {
     fontSize: 28,
     fontWeight: "700",
     color: "#1f2937",
     lineHeight: 34,
-    marginBottom: 8,
+    marginRight: 8,
     fontFamily: "Urbanist_600SemiBold",
   },
   author: {
@@ -290,5 +277,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Urbanist_600SemiBold",
     fontWeight: "600",
+  },
+  chatIcon: {
+    padding: 4,
   },
 });

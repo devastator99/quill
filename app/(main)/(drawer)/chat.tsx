@@ -177,10 +177,9 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
-        <StatusBar />
-        <Header title="Health" onBack={() => {}} onMenu={() => {}} />
+        <StatusBar style="dark" />
+        <Header title="Books" onBack={() => {}} onMenu={() => {}} />
 
         <View style={styles.listWrapper}>
           <FlatList
@@ -205,7 +204,7 @@ export default function ChatScreen() {
 
           <LinearGradient
             pointerEvents="none"
-            colors={["#fff", "transparent"]}
+            colors={["rgba(255, 255, 255, 0.7)", "rgba(255, 255, 255, 0.29)"]}
             style={styles.topFade}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
@@ -232,7 +231,6 @@ export default function ChatScreen() {
           style={dynamicStyles.floatingInput}
         />
       </SafeAreaView>
-    </SafeAreaProvider>
   );
 }
 

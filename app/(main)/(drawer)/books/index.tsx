@@ -115,8 +115,7 @@ export default function BooksScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1f2937" />
-
+      {/* <StatusBar barStyle="light-content" backgroundColor="black" /> */}
       {/* Search */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
