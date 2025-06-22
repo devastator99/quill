@@ -2,6 +2,13 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+buildscript {
+    ext {
+        hermesEnabled = (findProperty("expo.jsEngine")?.toString() == "hermes")
+    }
+}
+
+
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
 /**
@@ -147,6 +154,7 @@ android {
 }
 
 dependencies {
+    // def isHermesEnabled = project.hasProperty("expo.jsEngine") && project.property("expo.jsEngine") == "hermes"
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
 
@@ -168,9 +176,7 @@ dependencies {
         }
     }
 
-    def isHermesEnabled = project.hasProperty("expo.jsEngine") && project.property("expo.jsEngine") == "hermes"
-
-    if (isHermesEnabled.toBoolean()) {
+    if (hermesEnabled) {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
