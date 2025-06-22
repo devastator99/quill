@@ -25,7 +25,7 @@ export default function BooksLayout() {
       screenOptions={{
         headerShown: true,
         headerStyle: {
-          backgroundColor: 'rgb(255, 255, 255)',
+          backgroundColor: 'rgb(241, 240, 240)',
         },
         headerTintColor: '#000000',
         headerTitleStyle: {

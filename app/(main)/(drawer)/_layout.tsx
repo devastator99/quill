@@ -40,9 +40,9 @@ const DrawerContent: React.FC<DrawerContentProps> = ({ toggleDrawer }) => {
           screenOptions={{
             headerShown: true,
             headerStyle: {
-              backgroundColor: "#1f2937",
+              backgroundColor: "rgb(241, 240, 240)",
             },
-            headerTintColor: "#ffffff",
+            headerTintColor: "#000000",
             headerTitleStyle: {
               fontWeight: "600",
             },
