@@ -21,12 +21,14 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
         "expo-build-properties",
         {
           "android": {
             "hermesEnabled": true
           }
-        },
+        }
+      ],
       "expo-dev-client",
       "expo-router",
       "expo-font"
