@@ -71,6 +71,15 @@ const DrawerContent: React.FC<DrawerContentProps> = ({ toggleDrawer }) => {
               ),
             }}
           />
+          <Stack.Screen
+            name="upload"
+            options={{
+              title: "UploadPDF",
+              headerLeft: ({ tintColor }) => (
+                <MenuButton tintColor={tintColor} />
+              ),
+            }}
+          />
         </Stack>
       </DrawerContext.Provider>
     </SafeAreaView>
@@ -94,6 +103,11 @@ export default function DrawerLayout() {
       title: "About",
       subtitle: "App information",
     },
+    {
+      icon: "ℹ️",
+      title: "Upload",
+      subtitle: "Upload PDF",
+    }
   ];
 
   const handleItemPress = (item: any, index: number) => {
@@ -112,6 +126,10 @@ export default function DrawerLayout() {
         console.log("Navigating to about");
         router.push("/(main)/(drawer)/about");
         break;
+        case 3:
+          console.log("Navigating to upload");
+          router.push("/(main)/(drawer)/upload");
+          break;
       default:
         console.log("Unknown route index:", index);
     }
