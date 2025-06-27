@@ -200,7 +200,7 @@ async def chat_with_context(request: ChatRequest, db: Session = Depends(get_db))
                 sources.append(f"Document chunk {i}")
 
         llm = ChatOpenAI(
-            model="mixtral-8x7b-32768",
+            model="meta-llama/Llama-3.2-1B",
             temperature=0.7,
             api_key=os.getenv("OPENAI_API_KEY"),
             base_url=os.getenv("OPENAI_API_BASE")
