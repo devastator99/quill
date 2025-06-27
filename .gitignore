@@ -5,6 +5,8 @@ node_modules/
 expo-env.d.ts
 # @end expo-cli
 
+/backend/.env
+/backend/env
 # Native folders for non-CNG projects
 /android/app/build/
 /android/.gradle/
