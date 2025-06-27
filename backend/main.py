@@ -67,6 +67,17 @@ class ChunkResponse(BaseModel):
     socratic_questions: List[str]
 
 
+class ChatRequest(BaseModel):
+    message: str
+    conversation_id: str = None
+
+
+class ChatResponse(BaseModel):
+    response: str
+    conversation_id: str
+    sources: List[str] = []
+
+
 @app.post("/upload_pdf/", response_model=List[ChunkResponse])
 async def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)):
     """
@@ -156,3 +167,75 @@ async def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)
     os.unlink(tmp_path)
 
     return results
+
+
+@app.post("/chat/", response_model=ChatResponse)
+async def chat_with_context(request: ChatRequest, db: Session = Depends(get_db)):
+    """
+    Chat endpoint that uses the vector store to provide context-aware responses
+    based on uploaded PDFs.
+    """
+    try:
+        # Setup embeddings for similarity search
+        embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+        vectorstore = PGVector(
+            connection_string=DATABASE_URL,
+            embedding_function=embeddings,
+            collection_name="pdf_chunks",
+        )
+        
+        # Search for relevant context from uploaded PDFs
+        relevant_docs = vectorstore.similarity_search(
+            request.message, 
+            k=3  # Get top 3 most relevant chunks
+        )
+        
+        # Prepare context from relevant documents
+        context = ""
+        sources = []
+        if relevant_docs:
+            context = "\n\nRelevant context from uploaded documents:\n"
+            for i, doc in enumerate(relevant_docs, 1):
+                context += f"{i}. {doc.page_content[:500]}...\n"
+                sources.append(f"Document chunk {i}")
+        
+        # Setup Groq API for LLM
+        os.environ["OPENAI_API_KEY"] = os.getenv("GROQ_API_KEY")  
+        os.environ["OPENAI_API_BASE"] = "https://api.groq.com/openai/v1"
+
+        llm = ChatOpenAI(
+            model="mixtral-8x7b-32768",
+            temperature=0.7,
+        )
+        
+        # Create a comprehensive prompt
+        prompt = f"""You are a helpful AI assistant with access to uploaded document content. 
+        Answer the user's question using the provided context when relevant. 
+        If the context doesn't contain relevant information, provide a general helpful response.
+        
+        User Question: {request.message}
+        {context}
+        
+        Please provide a clear, helpful response. If you used information from the uploaded documents, 
+        mention that you're referencing the uploaded content."""
+        
+        # Get response from LLM
+        response = await llm.ainvoke(prompt)
+        
+        # Generate conversation ID if not provided
+        conversation_id = request.conversation_id or str(uuid.uuid4())
+        
+        return ChatResponse(
+            response=response.content,
+            conversation_id=conversation_id,
+            sources=sources
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
+
+
+@app.get("/health")
+async def health_check():
+    """Simple health check endpoint"""
+    return {"status": "healthy", "message": "PDF Socratic LLM Processor is running"}

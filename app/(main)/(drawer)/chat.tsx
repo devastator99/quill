@@ -1,10 +1,11 @@
 // ChatScreen.js
 
 import React, { useState, useEffect } from "react";
-import { View, FlatList, StyleSheet, KeyboardAvoidingView, Platform, Keyboard } from "react-native";
+import { View, FlatList, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, Alert } from "react-native";
 import { SafeAreaProvider , SafeAreaView} from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
+import axios from "axios";
 
 import Header from "@/components/Header";
 import PreviewBubble from "@/components/PreviewBubble";
@@ -20,7 +21,19 @@ import {
   Urbanist_400Regular_Italic,
 } from "@expo-google-fonts/urbanist";
 
-const initialMessages = [
+// Replace with your actual backend URL
+const BACKEND_URL = 'http://localhost:8000'; // Update this to your backend URL
+
+interface Message {
+  id: string;
+  type: 'preview' | 'response';
+  avatar: any;
+  text: string;
+  sources?: string[];
+  isLoading?: boolean;
+}
+
+const initialMessages: Message[] = [
   {
     id: "1",
     type: "preview",
@@ -35,80 +48,14 @@ const initialMessages = [
       "A diet rich in natural foods can be beneficial for cancer patients. Here are some natural foods that you may consider:\n\n" +
       "• Leafy green vegetables – spinach, kale, collard greens, and others are packed with vitamins, minerals, and antioxidants that can help to boost the immune system and fight cancer.",
   },
-  {
-    id: "3",
-    type: "preview",
-    avatar: require("@/assets/user.png"),
-    text: "tell me head pain medicines",
-  },
-  {
-    id: "4",
-    type: "response",
-    avatar: require("@/assets/robot.png"),
-    text:
-      "There are several over-the-counter and prescription medications that can be used to treat head pain. Some common ones include:\n\n" +
-      "• Acetaminophen (Tylenol) – This is an over-the-counter medication that can be effective for mild to moderate headaches.",
-  },
-  {
-    id: "5",
-    type: "preview",
-    avatar: require("@/assets/user.png"),
-    text: "what are early symptoms of diabetes",
-  },
-  {
-    id: "6",
-    type: "response",
-    avatar: require("@/assets/robot.png"),
-    text:
-      "Early symptoms of diabetes can include:\n\n" +
-      "• Increased thirst and frequent urination – excess sugar in your blood pulls water from tissues.\n" +
-      "• Unexplained weight loss – your body starts burning fat and muscle for energy.\n" +
-      "• Fatigue – lack of sugar getting into your cells can make you tired and weak.\n" +
-      "• Blurred vision – high blood sugar can pull fluid from your lenses, affecting focus.\n" +
-      "• Slow-healing sores or frequent infections – high glucose levels can impair circulation and immune function.",
-  },
-  {
-    id: "7",
-    type: "preview",
-    avatar: require("@/assets/user.png"),
-    text: "suggest exercises for weight loss",
-  },
-  {
-    id: "8",
-    type: "response",
-    avatar: require("@/assets/robot.png"),
-    text:
-      "Here are some exercises effective for weight loss:\n\n" +
-      "• High-Intensity Interval Training (HIIT) – short bursts of intense activity followed by rest.\n" +
-      "• Brisk walking or jogging – aim for 30–45 minutes most days.\n" +
-      "• Strength training – weight lifting or bodyweight exercises 2–3× per week to build muscle.\n" +
-      "• Cycling – either stationary or outdoor, maintain moderate effort for 45–60 minutes.\n" +
-      "• Swimming – full-body workout with low impact, 30–60 minutes sessions.",
-  },
-  {
-    id: "9",
-    type: "preview",
-    avatar: require("@/assets/user.png"),
-    text: "how to improve sleep quality",
-  },
-  {
-    id: "10",
-    type: "response",
-    avatar: require("@/assets/robot.png"),
-    text:
-      "To improve sleep quality, consider:\n\n" +
-      "• Maintaining a consistent sleep schedule – go to bed and wake up at the same times each day.\n" +
-      "• Creating a relaxing bedtime routine – read, meditate, or take a warm bath.\n" +
-      "• Optimizing your sleep environment – cool, dark, and quiet room; comfortable mattress and pillows.\n" +
-      "• Limiting screen time before bed – avoid blue light at least 1 hour before sleep.\n" +
-      "• Reducing caffeine and heavy meals in the evening – opt for light, easily digestible snacks if needed.",
-  },
 ];
 
 export default function ChatScreen() {
-  const [messages, setMessages] = useState(initialMessages);
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputText, setInputText] = useState("");
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [fontsLoaded] = useFonts({
     Urbanist_400Regular,
@@ -135,21 +82,134 @@ export default function ChatScreen() {
 
   if (!fontsLoaded) return null;
 
-  const handleEdit = (id: any) => console.log("Edit message", id);
-  const handleSend = () => {
-    if (!inputText.trim()) return;
-    setMessages((m) => [
-      ...m,
-      {
-        id: String(m.length + 1),
-        type: "preview",
-        avatar: require("@/assets/user.png"),
-        text: inputText.trim(),
-      },
-    ]);
-    setInputText("");
+  const sendMessageToAPI = async (message: string) => {
+    try {
+      const response = await axios.post(`${BACKEND_URL}/chat/`, {
+        message: message,
+        conversation_id: conversationId,
+      });
+
+      return response.data;
+    } catch (error: any) {
+      console.error('Chat API error:', error);
+      throw new Error(error.response?.data?.detail || 'Failed to get response from AI');
+    }
   };
-  const handleRegenerate = () => console.log("Regenerate!");
+
+  const handleEdit = (id: any) => console.log("Edit message", id);
+  
+  const handleSend = async () => {
+    if (!inputText.trim() || isLoading) return;
+    
+    const userMessage: Message = {
+      id: String(Date.now()),
+      type: "preview",
+      avatar: require("@/assets/user.png"),
+      text: inputText.trim(),
+    };
+
+    // Add user message immediately
+    setMessages((prev) => [...prev, userMessage]);
+    const currentInput = inputText.trim();
+    setInputText("");
+    setIsLoading(true);
+
+    // Add loading message
+    const loadingMessage: Message = {
+      id: String(Date.now() + 1),
+      type: "response",
+      avatar: require("@/assets/robot.png"),
+      text: "Thinking...",
+      isLoading: true,
+    };
+    setMessages((prev) => [...prev, loadingMessage]);
+
+    try {
+      // Send message to API
+      const apiResponse = await sendMessageToAPI(currentInput);
+      
+      // Update conversation ID if it's a new conversation
+      if (!conversationId && apiResponse.conversation_id) {
+        setConversationId(apiResponse.conversation_id);
+      }
+
+      // Replace loading message with actual response
+      setMessages((prev) => 
+        prev.map((msg) => 
+          msg.id === loadingMessage.id 
+            ? {
+                ...msg,
+                text: apiResponse.response,
+                sources: apiResponse.sources,
+                isLoading: false,
+              }
+            : msg
+        )
+      );
+    } catch (error: any) {
+      // Replace loading message with error message
+      setMessages((prev) => 
+        prev.map((msg) => 
+          msg.id === loadingMessage.id 
+            ? {
+                ...msg,
+                text: "I'm sorry, I encountered an error while processing your request. Please try again.",
+                isLoading: false,
+              }
+            : msg
+        )
+      );
+      
+      Alert.alert('Error', error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (messages.length < 2) return;
+    
+    // Find the last user message
+    const lastUserMessage = [...messages].reverse().find(msg => msg.type === 'preview');
+    if (!lastUserMessage) return;
+
+    setIsLoading(true);
+
+    // Add loading message
+    const loadingMessage: Message = {
+      id: String(Date.now()),
+      type: "response",
+      avatar: require("@/assets/robot.png"),
+      text: "Regenerating response...",
+      isLoading: true,
+    };
+    setMessages((prev) => [...prev, loadingMessage]);
+
+    try {
+      // Send the last user message to API again
+      const apiResponse = await sendMessageToAPI(lastUserMessage.text);
+      
+      // Replace loading message with new response
+      setMessages((prev) => 
+        prev.map((msg) => 
+          msg.id === loadingMessage.id 
+            ? {
+                ...msg,
+                text: apiResponse.response,
+                sources: apiResponse.sources,
+                isLoading: false,
+              }
+            : msg
+        )
+      );
+    } catch (error: any) {
+      // Remove loading message on error
+      setMessages((prev) => prev.filter(msg => msg.id !== loadingMessage.id));
+      Alert.alert('Error', error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const dynamicStyles = {
     floatingButton: {
@@ -179,7 +239,7 @@ export default function ChatScreen() {
   return (
       <SafeAreaView style={styles.container}>
         <StatusBar style="dark" />
-        <Header title="Books" onBack={() => {}} onMenu={() => {}} />
+        <Header title="AI Chat" onBack={() => {}} onMenu={() => {}} />
 
         <View style={styles.listWrapper}>
           <FlatList
@@ -197,7 +257,12 @@ export default function ChatScreen() {
                   onEdit={() => handleEdit(item.id)}
                 />
               ) : (
-                <ResponseBubble avatar={item.avatar} text={item.text} />
+                <ResponseBubble 
+                  avatar={item.avatar} 
+                  text={item.text}
+                  sources={item.sources}
+                  isLoading={item.isLoading}
+                />
               )
             }
           />
@@ -222,6 +287,7 @@ export default function ChatScreen() {
         <RegenerateButton
           onPress={handleRegenerate}
           style={dynamicStyles.floatingButton}
+          disabled={isLoading}
         />
         <InputBar
           value={inputText}
@@ -229,6 +295,7 @@ export default function ChatScreen() {
           onSend={handleSend}
           onMic={() => console.log("Mic tapped")}
           style={dynamicStyles.floatingInput}
+          disabled={isLoading}
         />
       </SafeAreaView>
   );

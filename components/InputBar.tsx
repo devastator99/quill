@@ -17,13 +17,15 @@ export default function InputBar({
   onChangeText, 
   onSend, 
   onMic, 
-  style 
+  style,
+  disabled
 }: { 
   value: string;
   onChangeText: (text: string) => void;
   onSend: () => void;
   onMic: () => void;
   style?: ViewStyle;
+  disabled?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const isActive = value.trim().length > 0;
@@ -47,19 +49,25 @@ export default function InputBar({
         {/* Actual input container */}
         <View style={styles.container}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, disabled && styles.inputDisabled]}
             value={value}
             onChangeText={onChangeText}
             placeholder="Type a message"
             placeholderTextColor="#999"
             returnKeyType="send"
             onSubmitEditing={() => isActive && onSend()}
+            multiline
+            editable={!disabled}
           />
-          <TouchableOpacity onPress={handlePress} style={styles.iconTouch}>
+          <TouchableOpacity 
+            style={[styles.iconTouch, disabled && styles.buttonDisabled]}
+            onPress={handlePress}
+            disabled={disabled}
+          >
             <Ionicons
               name={isActive ? 'send' : 'mic'}
               size={20}
-              color={isActive ? '#007AFF' : '#AAA'}
+              color={disabled ? "#CCCCCC" : isActive ? '#007AFF' : '#AAA'}
             />
           </TouchableOpacity>
         </View>
@@ -116,5 +124,11 @@ const styles = StyleSheet.create({
   },
   iconTouch: {
     marginLeft: 12,
+  },
+  inputDisabled: {
+    // Add appropriate styles for disabled input
+  },
+  buttonDisabled: {
+    // Add appropriate styles for disabled button
   },
 });
