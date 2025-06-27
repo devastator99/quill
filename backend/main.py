@@ -126,7 +126,7 @@ async def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)
             status_code=500, detail=f"Embedding or DB error: {str(e)}")
 
     # Setup Groq API for LLM
-    os.environ["OPENAI_API_KEY"] = os.getenv("GROQ_API_KEY")  
+    os.environ["OPENAI_API_KEY"] = os.getenv("GROQ_API_KEY")
     os.environ["OPENAI_API_BASE"] = "https://api.groq.com/openai/v1"
 
     llm = ChatOpenAI(
@@ -152,9 +152,9 @@ async def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)
         # Parse response (assumes LLM formats well)
         response_lines = response.content.strip().split("\n")
         summary = response_lines[0] if response_lines else ""
-        questions = [line.strip("- ").strip() for line in response_lines[1:] 
-                    if line.strip() and not line.strip().startswith("1.") 
-                    and not line.strip().startswith("2.")]
+        questions = [line.strip("- ").strip() for line in response_lines[1:]
+                     if line.strip() and not line.strip().startswith("1.")
+                     and not line.strip().startswith("2.")]
 
         results.append(ChunkResponse(
             chunk_id=chunk_id,
@@ -183,13 +183,13 @@ async def chat_with_context(request: ChatRequest, db: Session = Depends(get_db))
             embedding_function=embeddings,
             collection_name="pdf_chunks",
         )
-        
+
         # Search for relevant context from uploaded PDFs
         relevant_docs = vectorstore.similarity_search(
-            request.message, 
+            request.message,
             k=3  # Get top 3 most relevant chunks
         )
-        
+
         # Prepare context from relevant documents
         context = ""
         sources = []
@@ -198,16 +198,14 @@ async def chat_with_context(request: ChatRequest, db: Session = Depends(get_db))
             for i, doc in enumerate(relevant_docs, 1):
                 context += f"{i}. {doc.page_content[:500]}...\n"
                 sources.append(f"Document chunk {i}")
-        
-        # Setup Groq API for LLM
-        os.environ["OPENAI_API_KEY"] = os.getenv("GROQ_API_KEY")  
-        os.environ["OPENAI_API_BASE"] = "https://api.groq.com/openai/v1"
 
         llm = ChatOpenAI(
             model="mixtral-8x7b-32768",
             temperature=0.7,
+            openai_api_key=os.getenv("GROQ_API_KEY"),
+            openai_api_base="https://api.groq.com/openai/v1"
         )
-        
+
         # Create a comprehensive prompt
         prompt = f"""You are a helpful AI assistant with access to uploaded document content. 
         Answer the user's question using the provided context when relevant. 
@@ -218,19 +216,19 @@ async def chat_with_context(request: ChatRequest, db: Session = Depends(get_db))
         
         Please provide a clear, helpful response. If you used information from the uploaded documents, 
         mention that you're referencing the uploaded content."""
-        
+
         # Get response from LLM
         response = await llm.ainvoke(prompt)
-        
+
         # Generate conversation ID if not provided
         conversation_id = request.conversation_id or str(uuid.uuid4())
-        
+
         return ChatResponse(
             response=response.content,
             conversation_id=conversation_id,
             sources=sources
         )
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
 
