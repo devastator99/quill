@@ -199,15 +199,13 @@ async def chat_with_context(request: ChatRequest, db: Session = Depends(get_db))
                 context += f"{i}. {doc.page_content[:500]}...\n"
                 sources.append(f"Document chunk {i}")
 
-        os.environ["OPENAI_API_KEY"] = os.getenv("GROQ_API_KEY")
-        os.environ["OPENAI_API_BASE"] = "https://api.groq.com/openai/v1"
-
         print("GROQ_API_KEY:", os.getenv("GROQ_API_KEY"))  # should NOT be None
-
 
         llm = ChatOpenAI(
             model="meta-llama/llama-4-scout-17b-16e-instruct",  # or another supported model
             temperature=0.7,
+            api_key=os.getenv("GROQ_API_KEY"),
+            base_url="https://api.groq.com/openai/v1"
         )
 
         # Create a comprehensive prompt
