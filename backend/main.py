@@ -199,15 +199,13 @@ async def chat_with_context(request: ChatRequest, db: Session = Depends(get_db))
                 context += f"{i}. {doc.page_content[:500]}...\n"
                 sources.append(f"Document chunk {i}")
 
-        # Setup Groq API for LLM
-        os.environ["OPENAI_API_KEY"] = os.getenv("GROQ_API_KEY")  
-        os.environ["OPENAI_API_BASE"] = "https://api.groq.com/openai/v1"
-
         llm = ChatOpenAI(
             model="mixtral-8x7b-32768",
             temperature=0.7,
+            api_key=os.getenv("OPENAI_API_KEY"),
+            base_url=os.getenv("OPENAI_API_BASE")
         )
-        
+
         # Create a comprehensive prompt
         prompt = f"""You are a helpful AI assistant with access to uploaded document content. 
         Answer the user's question using the provided context when relevant. 
@@ -218,19 +216,19 @@ async def chat_with_context(request: ChatRequest, db: Session = Depends(get_db))
         
         Please provide a clear, helpful response. If you used information from the uploaded documents, 
         mention that you're referencing the uploaded content."""
-        
+
         # Get response from LLM
         response = await llm.ainvoke(prompt)
-        
+
         # Generate conversation ID if not provided
         conversation_id = request.conversation_id or str(uuid.uuid4())
-        
+
         return ChatResponse(
             response=response.content,
             conversation_id=conversation_id,
             sources=sources
         )
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
 
