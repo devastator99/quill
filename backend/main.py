@@ -199,38 +199,38 @@ async def chat_with_context(request: ChatRequest, db: Session = Depends(get_db))
                 context += f"{i}. {doc.page_content[:500]}...\n"
                 sources.append(f"Document chunk {i}")
 
-        print("GROQ_API_KEY:", os.getenv("GROQ_API_KEY"))  # should NOT be None
+        # Setup Groq API for LLM
+        os.environ["OPENAI_API_KEY"] = os.getenv("GROQ_API_KEY")  
+        os.environ["OPENAI_API_BASE"] = "https://api.groq.com/openai/v1"
 
         llm = ChatOpenAI(
-            model="meta-llama/llama-4-scout-17b-16e-instruct",  # or another supported model
+            model="mixtral-8x7b-32768",
             temperature=0.7,
-            api_key=os.getenv("GROQ_API_KEY"),
-            base_url="https://api.groq.com/openai/v1"
         )
-
+        
         # Create a comprehensive prompt
-        prompt = f"""You are a helpful AI assistant with access to uploaded document content.
-        Answer the user's question using the provided context when relevant.
+        prompt = f"""You are a helpful AI assistant with access to uploaded document content. 
+        Answer the user's question using the provided context when relevant. 
         If the context doesn't contain relevant information, provide a general helpful response.
-
+        
         User Question: {request.message}
         {context}
-
-        Please provide a clear, helpful response. If you used information from the uploaded documents,
+        
+        Please provide a clear, helpful response. If you used information from the uploaded documents, 
         mention that you're referencing the uploaded content."""
-
+        
         # Get response from LLM
         response = await llm.ainvoke(prompt)
-
+        
         # Generate conversation ID if not provided
         conversation_id = request.conversation_id or str(uuid.uuid4())
-
+        
         return ChatResponse(
             response=response.content,
             conversation_id=conversation_id,
             sources=sources
         )
-
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
 
