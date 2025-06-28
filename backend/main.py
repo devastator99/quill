@@ -14,7 +14,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from tempfile import NamedTemporaryFile
 from pydantic import BaseModel
 from dotenv import load_dotenv
-
+from langchain_huggingface import HuggingFaceEmbeddings
 # Load environment variables
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -177,7 +177,7 @@ async def chat_with_context(request: ChatRequest, db: Session = Depends(get_db))
     """
     try:
         # Setup embeddings for similarity search
-        embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+        embeddings = HuggingFaceEmbeddings(model_name="togethercomputer/m2-bert-80M-32k-retrieval")
         vectorstore = PGVector(
             connection_string=DATABASE_URL,
             embedding_function=embeddings,
@@ -200,7 +200,7 @@ async def chat_with_context(request: ChatRequest, db: Session = Depends(get_db))
                 sources.append(f"Document chunk {i}")
 
         llm = ChatOpenAI(
-            model="meta-llama/Llama-3.2-1B",
+            model="mistralai/Mistral-7B-Instruct-v0.2",
             temperature=0.7,
             api_key=os.getenv("OPENAI_API_KEY"),
             base_url=os.getenv("OPENAI_API_BASE")
