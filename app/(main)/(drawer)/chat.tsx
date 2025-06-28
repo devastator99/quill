@@ -84,10 +84,16 @@ export default function ChatScreen() {
 
   const sendMessageToAPI = async (message: string) => {
     try {
-      const response = await axios.post(`${BACKEND_URL}/chat/`, {
+      const payload: any = {
         message: message,
-        conversation_id: conversationId,
-      });
+      };
+      
+      // Only include conversation_id if it exists
+      if (conversationId) {
+        payload.conversation_id = conversationId;
+      }
+      
+      const response = await axios.post(`${BACKEND_URL}/chat/`, payload);
 
       return response.data;
     } catch (error: any) {

@@ -109,12 +109,12 @@ async def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)
 
     # Split into overlapping chunks
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=700, chunk_overlap=100)
+        chunk_size=1500, chunk_overlap=100)
     chunks: List[Document] = splitter.split_documents(documents)
 
     # Embed and store in PGVector
     try:
-        embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
         vectorstore = PGVector(
             connection_string=DATABASE_URL,
             embedding_function=embeddings,
@@ -125,14 +125,12 @@ async def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)
         raise HTTPException(
             status_code=500, detail=f"Embedding or DB error: {str(e)}")
 
-    # Setup Groq API for LLM
-    os.environ["OPENAI_API_KEY"] = os.getenv("GROQ_API_KEY")
-    os.environ["OPENAI_API_BASE"] = "https://api.groq.com/openai/v1"
-
     llm = ChatOpenAI(
-        model="mixtral-8x7b-32768",
-        temperature=0.3,
-    )
+            model="mistralai/Mistral-7B-Instruct-v0.2",
+            temperature=0.7,
+            api_key=os.getenv("OPENAI_API_KEY"),
+            base_url=os.getenv("OPENAI_API_BASE")
+        )
 
     results: List[ChunkResponse] = []
 
