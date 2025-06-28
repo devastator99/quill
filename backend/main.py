@@ -177,7 +177,7 @@ async def chat_with_context(request: ChatRequest, db: Session = Depends(get_db))
     """
     try:
         # Setup embeddings for similarity search
-        embeddings = HuggingFaceEmbeddings(model_name="togethercomputer/m2-bert-80M-32k-retrieval",trust_remote_code=True)
+        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
         vectorstore = PGVector(
             connection_string=DATABASE_URL,
             embedding_function=embeddings,
