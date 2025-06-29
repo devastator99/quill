@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import os
 import uuid
-from typing import List
+from typing import List, Optional
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
@@ -65,6 +65,9 @@ class ChunkResponse(BaseModel):
     text_snippet: str
     summary: str
     socratic_questions: List[str]
+    page_number: Optional[int]
+    filename: Optional[str]
+    confidence: Optional[float]
 
 
 class ChatRequest(BaseModel):
@@ -84,12 +87,12 @@ async def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)
     Endpoint to upload a PDF, extract and chunk its text,
     embed and store in pgvector, and query LLM for Socratic reflection.
     """
-    # Check file type
+    # ✅ Check file type
     if not file.filename.endswith(".pdf"):
         raise HTTPException(
             status_code=400, detail="Only PDF files are supported.")
 
-    # Save uploaded file temporarily
+    # ✅ Save uploaded file temporarily
     try:
         with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
             contents = await file.read()
@@ -99,7 +102,7 @@ async def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)
         raise HTTPException(
             status_code=500, detail=f"Error saving file: {str(e)}")
 
-    # Extract text using LangChain PDF loader
+    # ✅ Extract text using LangChain PDF loader
     try:
         loader = PyPDFLoader(tmp_path)
         documents = loader.load()
@@ -107,35 +110,27 @@ async def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)
         raise HTTPException(
             status_code=500, detail=f"Error loading PDF: {str(e)}")
 
-    # Split into overlapping chunks
+    # ✅ Split into overlapping chunks
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=1500, chunk_overlap=100)
     chunks: List[Document] = splitter.split_documents(documents)
 
-    # Embed and store in PGVector
-    try:
-        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-        vectorstore = PGVector(
-            connection_string=DATABASE_URL,
-            embedding_function=embeddings,
-            collection_name="pdf_chunks",
-        )
-        vectorstore.add_documents(chunks)
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Embedding or DB error: {str(e)}")
-
+    # ✅ Initialize LLM
     llm = ChatOpenAI(
-            model="mistralai/Mistral-7B-Instruct-v0.2",
-            temperature=0.7,
-            api_key=os.getenv("OPENAI_API_KEY"),
-            base_url=os.getenv("OPENAI_API_BASE")
-        )
+        model="mistralai/Mistral-7B-Instruct-v0.2",
+        temperature=0.7,
+        api_key=os.getenv("OPENAI_API_KEY"),
+        base_url=os.getenv("OPENAI_API_BASE")
+    )
 
     results: List[ChunkResponse] = []
 
+    # ✅ Enrich each chunk with metadata + LLM output
     for i, chunk in enumerate(chunks):
+        chunk.metadata["filename"] = file.filename
+        chunk.metadata["page_number"] = chunk.metadata.get("page", i + 1)
         chunk_id = str(uuid.uuid4())
+
         prompt = (
             f"Here is a text snippet:\n\n{chunk.page_content}\n\n"
             "1. Summarize it in one sentence.\n"
@@ -147,21 +142,44 @@ async def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"LLM error: {str(e)}")
 
-        # Parse response (assumes LLM formats well)
         response_lines = response.content.strip().split("\n")
         summary = response_lines[0] if response_lines else ""
-        questions = [line.strip("- ").strip() for line in response_lines[1:]
-                     if line.strip() and not line.strip().startswith("1.")
-                     and not line.strip().startswith("2.")]
+        questions = [
+            line.strip("- ").strip() for line in response_lines[1:]
+            if line.strip() and not line.startswith("1.") and not line.startswith("2.")
+        ]
+
+        confidence = 1.0 if summary and questions else 0.5
+
+        chunk.metadata["summary"] = summary.strip()
+        chunk.metadata["socratic_questions"] = questions
+        chunk.metadata["llm_confidence"] = confidence
 
         results.append(ChunkResponse(
             chunk_id=chunk_id,
-            text_snippet=chunk.page_content[:300] + "...",  # limit size
+            text_snippet=chunk.page_content[:300] + "...",
             summary=summary.strip(),
             socratic_questions=questions,
+            filename=file.filename,
+            page_number=chunk.metadata["page_number"],
+            confidence=confidence
         ))
 
-    # Clean up temp file
+    # ✅ Embed and store in PGVector with enriched metadata
+    try:
+        embeddings = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2")
+        vectorstore = PGVector(
+            connection_string=DATABASE_URL,
+            embedding_function=embeddings,
+            collection_name="pdf_chunks",
+        )
+        vectorstore.add_documents(chunks)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Embedding or DB error: {str(e)}")
+
+    # ✅ Clean up temp file
     os.unlink(tmp_path)
 
     return results
@@ -175,7 +193,8 @@ async def chat_with_context(request: ChatRequest, db: Session = Depends(get_db))
     """
     try:
         # Setup embeddings for similarity search
-        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        embeddings = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2")
         vectorstore = PGVector(
             connection_string=DATABASE_URL,
             embedding_function=embeddings,

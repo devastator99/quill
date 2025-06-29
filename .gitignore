@@ -13,3 +13,6 @@ backend/env
 /android/build/
 /android/gradle.properties
 .env
+
+# CNG/Prebuild - ignore native folders
+/ios
