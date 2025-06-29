@@ -11,7 +11,6 @@ backend/env
 /android/app/build/
 /android/.gradle/
 /android/build/
-/android/gradle.properties
 .env
 
 # CNG/Prebuild - ignore native folders
