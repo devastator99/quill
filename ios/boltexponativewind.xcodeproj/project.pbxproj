@@ -7,14 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1358EBB04A415EAC86FF4592 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 3AC9EC0B3A1CE87987DA0B54 /* PrivacyInfo.xcprivacy */; };
+		0BB00BF051AC47308F779638 /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B2B05D191C3449B884B55D2 /* noop-file.swift */; };
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
+		1F0641E6B3C06F7B35D95176 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D0D4C6B1E39F6BC9E197F5D8 /* PrivacyInfo.xcprivacy */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		96905EF65AED1B983A6B3ABC /* libPods-boltexponativewind.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 58EEBF8E8E6FB1BC6CAF49B5 /* libPods-boltexponativewind.a */; };
 		B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */; };
-		B9A90CBC004543A382F0D816 /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFEE26F7FBD34973B52139E7 /* noop-file.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 /* End PBXBuildFile section */
 
@@ -25,14 +25,14 @@
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = boltexponativewind/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = boltexponativewind/Info.plist; sourceTree = "<group>"; };
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = boltexponativewind/main.m; sourceTree = "<group>"; };
-		3AC9EC0B3A1CE87987DA0B54 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = boltexponativewind/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		3B2B05D191C3449B884B55D2 /* noop-file.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = "noop-file.swift"; path = "boltexponativewind/noop-file.swift"; sourceTree = "<group>"; };
+		58C38D8385BC40F0809777E0 /* boltexponativewind-Bridging-Header.h */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.h; name = "boltexponativewind-Bridging-Header.h"; path = "boltexponativewind/boltexponativewind-Bridging-Header.h"; sourceTree = "<group>"; };
 		58EEBF8E8E6FB1BC6CAF49B5 /* libPods-boltexponativewind.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-boltexponativewind.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6C2E3173556A471DD304B334 /* Pods-boltexponativewind.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-boltexponativewind.debug.xcconfig"; path = "Target Support Files/Pods-boltexponativewind/Pods-boltexponativewind.debug.xcconfig"; sourceTree = "<group>"; };
 		7A4D352CD337FB3A3BF06240 /* Pods-boltexponativewind.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-boltexponativewind.release.xcconfig"; path = "Target Support Files/Pods-boltexponativewind/Pods-boltexponativewind.release.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = boltexponativewind/SplashScreen.storyboard; sourceTree = "<group>"; };
-		B716F8AE4D4A427AB66FEF6F /* boltexponativewind-Bridging-Header.h */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.h; name = "boltexponativewind-Bridging-Header.h"; path = "boltexponativewind/boltexponativewind-Bridging-Header.h"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		DFEE26F7FBD34973B52139E7 /* noop-file.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = "noop-file.swift"; path = "boltexponativewind/noop-file.swift"; sourceTree = "<group>"; };
+		D0D4C6B1E39F6BC9E197F5D8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = boltexponativewind/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-boltexponativewind/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -59,9 +59,9 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				13B07FB71A68108700A75B9A /* main.m */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				DFEE26F7FBD34973B52139E7 /* noop-file.swift */,
-				B716F8AE4D4A427AB66FEF6F /* boltexponativewind-Bridging-Header.h */,
-				3AC9EC0B3A1CE87987DA0B54 /* PrivacyInfo.xcprivacy */,
+				3B2B05D191C3449B884B55D2 /* noop-file.swift */,
+				58C38D8385BC40F0809777E0 /* boltexponativewind-Bridging-Header.h */,
+				D0D4C6B1E39F6BC9E197F5D8 /* PrivacyInfo.xcprivacy */,
 			);
 			name = boltexponativewind;
 			sourceTree = "<group>";
@@ -147,7 +147,7 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "boltexponativewind" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				8969FCDE2A93CA876F24B1BF /* [Expo] Configure project */,
+				E2C1488E1177D6DD2E992C9A /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
@@ -202,7 +202,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				1358EBB04A415EAC86FF4592 /* PrivacyInfo.xcprivacy in Resources */,
+				1F0641E6B3C06F7B35D95176 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -290,7 +290,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-boltexponativewind/Pods-boltexponativewind-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		8969FCDE2A93CA876F24B1BF /* [Expo] Configure project */ = {
+		E2C1488E1177D6DD2E992C9A /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -319,7 +319,7 @@
 				13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */,
 				13B07FC11A68108700A75B9A /* main.m in Sources */,
 				B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */,
-				B9A90CBC004543A382F0D816 /* noop-file.swift in Sources */,
+				0BB00BF051AC47308F779638 /* noop-file.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -350,7 +350,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nsaquib221122.boltexponativewind;
-				PRODUCT_NAME = "boltexponativewind";
+				PRODUCT_NAME = boltexponativewind;
 				SWIFT_OBJC_BRIDGING_HEADER = "boltexponativewind/boltexponativewind-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -378,7 +378,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nsaquib221122.boltexponativewind;
-				PRODUCT_NAME = "boltexponativewind";
+				PRODUCT_NAME = boltexponativewind;
 				SWIFT_OBJC_BRIDGING_HEADER = "boltexponativewind/boltexponativewind-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
