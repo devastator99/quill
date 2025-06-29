@@ -15,6 +15,11 @@ from tempfile import NamedTemporaryFile
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from langchain_huggingface import HuggingFaceEmbeddings
+import fitz
+import pandas as pd
+import mimetypes
+import magic
+
 # Load environment variables
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -81,16 +86,14 @@ class ChatResponse(BaseModel):
     sources: List[str] = []
 
 
-@app.post("/upload_pdf/", response_model=List[ChunkResponse])
-async def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)):
+@app.post("/upload_doc/", response_model=List[ChunkResponse])
+async def upload_doc(file: UploadFile = File(...), db: Session = Depends(get_db)):
     """
     Endpoint to upload a PDF, extract and chunk its text,
     embed and store in pgvector, and query LLM for Socratic reflection.
     """
     # ✅ Check file type
-    if not file.filename.endswith(".pdf"):
-        raise HTTPException(
-            status_code=400, detail="Only PDF files are supported.")
+    validate_file_type(file)
 
     # ✅ Save uploaded file temporarily
     try:
@@ -104,8 +107,7 @@ async def upload_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)
 
     # ✅ Extract text using LangChain PDF loader
     try:
-        loader = PyPDFLoader(tmp_path)
-        documents = loader.load()
+        documents = load_file_to_documents(tmp_path, file.filename)
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error loading PDF: {str(e)}")
@@ -254,3 +256,60 @@ async def chat_with_context(request: ChatRequest, db: Session = Depends(get_db))
 async def health_check():
     """Simple health check endpoint"""
     return {"status": "healthy", "message": "PDF Socratic LLM Processor is running"}
+
+
+def load_file_to_documents(file_path: str, filename: str) -> List[Document]:
+    ext = os.path.splitext(filename)[-1].lower()
+
+    if ext == ".pdf":
+        return load_pdf_with_pymupdf(file_path, filename)
+    elif ext in [".csv", ".xlsx", ".xls"]:
+        return load_spreadsheet(file_path, filename)
+    elif ext == ".md":
+        return load_markdown(file_path, filename)
+    else:
+        raise ValueError("Unsupported file format")
+
+
+def load_pdf_with_pymupdf(file_path: str, filename: str) -> List[Document]:
+    doc = fitz.open(file_path)
+    documents = []
+    for i, page in enumerate(doc):
+        text = page.get_text("text")  # gets text even from OCR-scanned PDFs
+        if not text.strip():
+            continue
+        metadata = {"source": filename, "page": i + 1}
+        documents.append(Document(page_content=text, metadata=metadata))
+    return documents
+
+
+def load_spreadsheet(file_path: str, filename: str) -> List[Document]:
+    try:
+        if filename.endswith(".csv"):
+            df = pd.read_csv(file_path)
+        else:
+            df = pd.read_excel(file_path)
+    except Exception as e:
+        raise ValueError(f"Error loading spreadsheet: {e}")
+
+    content = df.to_string(index=False)
+    return [Document(page_content=content, metadata={"source": filename})]
+
+
+def load_markdown(file_path: str, filename: str) -> List[Document]:
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+    except Exception as e:
+        raise ValueError(f"Error reading markdown file: {e}")
+    return [Document(page_content=content, metadata={"source": filename})]
+
+
+def validate_file_type(file: UploadFile):
+    mime_type = magic.from_buffer(file.file.read(2048), mime=True)
+    file.file.seek(0)
+    allowed_types = ['application/pdf', 'text/csv',
+                     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                     'text/markdown']
+    if mime_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Unsupported file type.")
