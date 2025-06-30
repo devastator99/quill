@@ -1,6 +1,6 @@
 // UploadPDFScreen.js
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,13 +10,15 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-} from 'react-native';
-import DocumentPicker, { DocumentPickerResponse } from 'react-native-document-picker';
-import LottieView from 'lottie-react-native';
-import axios from 'axios';
+} from "react-native";
+import DocumentPicker, {
+  DocumentPickerResponse,
+} from "react-native-document-picker";
+import LottieView from "lottie-react-native";
+import axios from "axios";
 
 // Replace with your actual backend URL
-const BACKEND_URL = 'http://localhost:8000'; // Update this to your backend URL
+const BACKEND_URL = "http://localhost:8000"; // Update this to your backend URL
 
 interface ChunkResponse {
   chunk_id: string;
@@ -35,7 +37,12 @@ const UploadScreen = () => {
   const pickDocument = async () => {
     try {
       const result = await DocumentPicker.pick({
-        type: DocumentPicker.types.pdf,
+        type: [
+          DocumentPicker.types.pdf,
+          DocumentPicker.types.csv,
+          DocumentPicker.types.xlsx,
+          "text/markdown",
+        ],
         allowMultiSelection: true,
       });
 
@@ -44,20 +51,20 @@ const UploadScreen = () => {
       setProcessedChunks([]); // reset processed chunks
     } catch (err) {
       if (DocumentPicker.isCancel(err)) {
-        console.log('User cancelled picker');
+        console.log("User cancelled picker");
       } else {
-        Alert.alert('Error', 'Failed to pick documents.');
+        Alert.alert("Error", "Failed to pick documents.");
       }
     }
   };
 
   const removeFile = (uri: string) => {
-    setFiles(files.filter(file => file.uri !== uri));
+    setFiles(files.filter((file) => file.uri !== uri));
   };
 
   const uploadFiles = async () => {
     if (files.length === 0) {
-      Alert.alert('No File', 'Please select at least one PDF.');
+      Alert.alert("No File", "Please select at least one file.");
       return;
     }
 
@@ -71,41 +78,48 @@ const UploadScreen = () => {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const formData = new FormData();
-        
-        formData.append('file', {
+
+        formData.append("file", {
           uri: file.uri,
-          type: file.type || 'application/pdf',
+          type: file.type || "application/octet-stream", // Default type
           name: file.name || `file${i}.pdf`,
         } as any);
 
-        const response = await axios.post(`${BACKEND_URL}/upload_pdf/`, formData, {
-          headers: { 
-            'Content-Type': 'multipart/form-data',
-          },
-          onUploadProgress: (progressEvent) => {
-            const progress = (progressEvent.loaded / (progressEvent.total || 1)) * ((i + 1) / files.length);
-            setUploadProgress(progress);
-          },
-        });
+        const response = await axios.post(
+          `${BACKEND_URL}/upload_doc/`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+            onUploadProgress: (progressEvent) => {
+              const progress =
+                (progressEvent.loaded / (progressEvent.total || 1)) *
+                ((i + 1) / files.length);
+              setUploadProgress(progress);
+            },
+          }
+        );
 
         // Add the processed chunks to our state
         const chunks: ChunkResponse[] = response.data;
-        setProcessedChunks(prev => [...prev, ...chunks]);
+        setProcessedChunks((prev) => [...prev, ...chunks]);
       }
 
       setUploading(false);
       setUploadSuccess(true);
       Alert.alert(
-        'Success!', 
-        `Successfully processed ${files.length} PDF(s) and generated ${processedChunks.length} chunks with Socratic questions.`
+        "Success!",
+        `Successfully processed ${files.length} file(s) and generated ${processedChunks.length} chunks with Socratic questions.`
       );
     } catch (err: any) {
-      console.error('Upload error:', err);
+      console.error("Upload error:", err);
       setUploading(false);
       setUploadSuccess(false);
-      
-      const errorMessage = err.response?.data?.detail || 'Failed to upload and process PDF';
-      Alert.alert('Upload Error', errorMessage);
+
+      const errorMessage =
+        err.response?.data?.detail || "Failed to upload and process file";
+      Alert.alert("Upload Error", errorMessage);
     }
   };
 
@@ -113,7 +127,9 @@ const UploadScreen = () => {
     <View style={styles.fileItem}>
       <View style={{ flex: 1 }}>
         <Text style={styles.fileName}>{item.name}</Text>
-        <Text style={styles.fileSize}>{((item.size || 0) / 1024).toFixed(2)} KB</Text>
+        <Text style={styles.fileSize}>
+          {((item.size || 0) / 1024).toFixed(2)} KB
+        </Text>
       </View>
       <TouchableOpacity onPress={() => removeFile(item.uri)}>
         <Text style={styles.removeText}>Remove</Text>
@@ -128,7 +144,9 @@ const UploadScreen = () => {
       <View style={styles.questionsContainer}>
         <Text style={styles.questionsTitle}>Socratic Questions:</Text>
         {item.socratic_questions.map((question, index) => (
-          <Text key={index} style={styles.question}>• {question}</Text>
+          <Text key={index} style={styles.question}>
+            • {question}
+          </Text>
         ))}
       </View>
     </View>
@@ -136,9 +154,23 @@ const UploadScreen = () => {
 
   const renderAnimation = () => {
     if (uploadSuccess === true) {
-      return <LottieView source={require('./animations/success.json')} autoPlay loop={false} style={styles.lottie} />;
+      return (
+        <LottieView
+          source={require("./animations/success.json")}
+          autoPlay
+          loop={false}
+          style={styles.lottie}
+        />
+      );
     } else if (uploadSuccess === false) {
-      return <LottieView source={require('./animations/failure.json')} autoPlay loop={false} style={styles.lottie} />;
+      return (
+        <LottieView
+          source={require("./animations/failure.json")}
+          autoPlay
+          loop={false}
+          style={styles.lottie}
+        />
+      );
     }
     return null;
   };
@@ -168,7 +200,8 @@ const UploadScreen = () => {
             Processing: {(uploadProgress * 100).toFixed(0)}%
           </Text>
           <Text style={styles.progressSubtext}>
-            Extracting text, generating embeddings, and creating Socratic questions...
+            Extracting text, generating embeddings, and creating Socratic
+            questions...
           </Text>
         </View>
       )}
@@ -181,7 +214,9 @@ const UploadScreen = () => {
 
       {processedChunks.length > 0 && (
         <View style={styles.resultsContainer}>
-          <Text style={styles.sectionTitle}>Processed Chunks ({processedChunks.length}):</Text>
+          <Text style={styles.sectionTitle}>
+            Processed Chunks ({processedChunks.length}):
+          </Text>
           <FlatList
             data={processedChunks}
             keyExtractor={(item) => item.chunk_id}
@@ -199,64 +234,64 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#fefefe',
+    backgroundColor: "#fefefe",
   },
   title: {
     fontSize: 24,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 15,
-    textAlign: 'center',
+    textAlign: "center",
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginTop: 20,
     marginBottom: 10,
-    color: '#333',
+    color: "#333",
   },
   fileList: {
     marginVertical: 10,
     maxHeight: 150,
   },
   fileItem: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 10,
-    backgroundColor: '#f3f3f3',
+    backgroundColor: "#f3f3f3",
     marginBottom: 8,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   fileName: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   fileSize: {
     fontSize: 12,
-    color: '#666',
+    color: "#666",
   },
   removeText: {
-    color: 'red',
-    fontWeight: 'bold',
+    color: "red",
+    fontWeight: "bold",
   },
   progressContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginVertical: 20,
   },
   progressText: {
     marginTop: 10,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   progressSubtext: {
     marginTop: 5,
     fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
+    color: "#666",
+    textAlign: "center",
   },
   lottie: {
     width: 100,
     height: 100,
-    alignSelf: 'center',
+    alignSelf: "center",
     marginTop: 20,
   },
   resultsContainer: {
@@ -267,37 +302,37 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chunkItem: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: "#f8f9fa",
     padding: 15,
     marginBottom: 10,
     borderRadius: 10,
     borderLeftWidth: 4,
-    borderLeftColor: '#007BFF',
+    borderLeftColor: "#007BFF",
   },
   chunkSummary: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
     marginBottom: 8,
   },
   chunkSnippet: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
     marginBottom: 10,
-    fontStyle: 'italic',
+    fontStyle: "italic",
   },
   questionsContainer: {
     marginTop: 10,
   },
   questionsTitle: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#007BFF',
+    fontWeight: "600",
+    color: "#007BFF",
     marginBottom: 5,
   },
   question: {
     fontSize: 14,
-    color: '#333',
+    color: "#333",
     marginBottom: 3,
     paddingLeft: 10,
   },
