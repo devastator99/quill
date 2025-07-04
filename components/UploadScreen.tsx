@@ -10,12 +10,19 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Modal,
+  ScrollView,
+  Dimensions,
 } from "react-native";
 import DocumentPicker, {
   DocumentPickerResponse,
 } from "react-native-document-picker";
 import LottieView from "lottie-react-native";
 import axios from "axios";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 // Replace with your actual backend URL
 const BACKEND_URL = "http://localhost:8000"; // Update this to your backend URL
@@ -57,6 +64,12 @@ const UploadScreen = () => {
   const [processedChunks, setProcessedChunks] = useState<ChunkResponse[]>([]);
   const [activeUploads, setActiveUploads] = useState<UploadResponse[]>([]);
   const [processingStatuses, setProcessingStatuses] = useState<Map<string, ProcessingStatus>>(new Map());
+  
+  // Modal states
+  const [statusModalVisible, setStatusModalVisible] = useState(false);
+  const [chunksModalVisible, setChunksModalVisible] = useState(false);
+  const [selectedChunk, setSelectedChunk] = useState<ChunkResponse | null>(null);
+  const [chunkDetailModalVisible, setChunkDetailModalVisible] = useState(false);
 
   // Poll for processing status updates
   useEffect(() => {
@@ -211,6 +224,11 @@ const UploadScreen = () => {
     }
   };
 
+  const openChunkDetail = (chunk: ChunkResponse) => {
+    setSelectedChunk(chunk);
+    setChunkDetailModalVisible(true);
+  };
+
   const renderFileItem = ({ item }: { item: DocumentPickerResponse }) => (
     <View style={styles.fileItem}>
       <View style={{ flex: 1 }}>
@@ -227,78 +245,6 @@ const UploadScreen = () => {
       </TouchableOpacity>
     </View>
   );
-
-  const renderChunkItem = ({ item }: { item: ChunkResponse }) => (
-    <View style={styles.chunkItem}>
-      <View style={styles.chunkHeader}>
-        <Text style={styles.chunkSummary}>{item.summary}</Text>
-        <View style={styles.metadataRow}>
-          <Text style={styles.filename}>{item.filename}</Text>
-          <Text style={styles.pageNumber}>Page {item.page_number}</Text>
-          <Text style={[
-            styles.confidence, 
-            { color: item.confidence > 0.8 ? '#28a745' : item.confidence > 0.5 ? '#ffc107' : '#dc3545' }
-          ]}>
-            {(item.confidence * 100).toFixed(0)}% confidence
-          </Text>
-        </View>
-      </View>
-      <Text style={styles.chunkSnippet}>{item.text_snippet}</Text>
-      <View style={styles.questionsContainer}>
-        <Text style={styles.questionsTitle}>🤔 Socratic Questions:</Text>
-        {item.socratic_questions.map((question, index) => (
-          <Text key={index} style={styles.question}>
-            • {question}
-          </Text>
-        ))}
-      </View>
-    </View>
-  );
-
-  const renderProcessingStatus = ({ item }: { item: UploadResponse }) => {
-    const status = processingStatuses.get(item.upload_id);
-    
-    return (
-      <View style={styles.processingItem}>
-        <View style={styles.processingHeader}>
-          <Text style={styles.processingTitle}>📄 {item.file_type} Processing</Text>
-          <Text style={styles.estimatedTime}>⏱️ {item.estimated_time}</Text>
-        </View>
-        
-        <Text style={styles.processingMessage}>{item.message}</Text>
-        
-        {status && (
-          <View style={styles.statusContainer}>
-            <View style={styles.progressRow}>
-              <Text style={styles.statusText}>{status.processing_stage}</Text>
-              <Text style={styles.progressText}>{status.progress}%</Text>
-            </View>
-            <View style={styles.progressBar}>
-              <View 
-                style={[styles.progressFill, { width: `${status.progress}%` }]} 
-              />
-            </View>
-            <Text style={styles.statusMessage}>{status.message}</Text>
-          </View>
-        )}
-        
-        <View style={styles.featuresContainer}>
-          <Text style={styles.featuresTitle}>✨ Features:</Text>
-          <View style={styles.featuresGrid}>
-            {item.supported_operations.map((feature, index) => (
-              <Text key={index} style={styles.featureTag}>
-                {feature}
-              </Text>
-            ))}
-          </View>
-        </View>
-        
-        <Text style={styles.chunkCount}>
-          📊 {item.total_chunks} chunks • {item.preview_chunks.length} preview ready
-        </Text>
-      </View>
-    );
-  };
 
   const renderAnimation = () => {
     if (uploadSuccess === true) {
@@ -322,6 +268,221 @@ const UploadScreen = () => {
     }
     return null;
   };
+
+  const renderStatusModal = () => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={statusModalVisible}
+      onRequestClose={() => setStatusModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>🔄 Processing Status</Text>
+            <TouchableOpacity 
+              onPress={() => setStatusModalVisible(false)}
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+            {activeUploads.map((upload, index) => {
+              const status = processingStatuses.get(upload.upload_id);
+              return (
+                <View key={upload.upload_id} style={styles.statusCard}>
+                  <LinearGradient
+                    colors={['#f8f9fa', '#e9ecef']}
+                    style={styles.statusCardGradient}
+                  >
+                    <View style={styles.statusHeader}>
+                      <Text style={styles.statusTitle}>
+                        {getFileTypeDisplay(upload.file_type)} Processing
+                      </Text>
+                      <Text style={styles.estimatedTime}>⏱️ {upload.estimated_time}</Text>
+                    </View>
+                    
+                    <Text style={styles.statusMessage}>{upload.message}</Text>
+                    
+                    {status && (
+                      <View style={styles.progressSection}>
+                        <View style={styles.progressHeader}>
+                          <Text style={styles.progressStage}>{status.processing_stage}</Text>
+                          <Text style={styles.progressPercentage}>{status.progress}%</Text>
+                        </View>
+                        <View style={styles.progressBarContainer}>
+                          <View 
+                            style={[styles.progressBar, { width: `${status.progress}%` }]} 
+                          />
+                        </View>
+                        <Text style={styles.progressMessage}>{status.message}</Text>
+                      </View>
+                    )}
+                    
+                    <View style={styles.featuresSection}>
+                      <Text style={styles.featuresTitle}>✨ Features:</Text>
+                      <View style={styles.featuresGrid}>
+                        {upload.supported_operations.map((feature, idx) => (
+                          <View key={idx} style={styles.featureChip}>
+                            <Text style={styles.featureText}>{feature}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                    
+                    <Text style={styles.chunkInfo}>
+                      📊 {upload.total_chunks} chunks • {upload.preview_chunks.length} preview ready
+                    </Text>
+                  </LinearGradient>
+                </View>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderChunksModal = () => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={chunksModalVisible}
+      onRequestClose={() => setChunksModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>📋 Processed Chunks ({processedChunks.length})</Text>
+            <TouchableOpacity 
+              onPress={() => setChunksModalVisible(false)}
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+          
+          <FlatList
+            data={processedChunks}
+            keyExtractor={(item) => item.chunk_id}
+            renderItem={({ item }) => (
+              <TouchableOpacity 
+                style={styles.chunkCard}
+                onPress={() => openChunkDetail(item)}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={['#ffffff', '#f8f9fa']}
+                  style={styles.chunkCardGradient}
+                >
+                  <View style={styles.chunkHeader}>
+                    <Text style={styles.chunkSummary} numberOfLines={2}>
+                      {item.summary}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={16} color="#666" />
+                  </View>
+                  
+                  <View style={styles.chunkMetadata}>
+                    <Text style={styles.chunkFilename}>{item.filename}</Text>
+                    <Text style={styles.chunkPage}>Page {item.page_number}</Text>
+                    <View style={[
+                      styles.confidenceBadge,
+                      { backgroundColor: item.confidence > 0.8 ? '#d4edda' : item.confidence > 0.5 ? '#fff3cd' : '#f8d7da' }
+                    ]}>
+                      <Text style={[
+                        styles.confidenceText,
+                        { color: item.confidence > 0.8 ? '#155724' : item.confidence > 0.5 ? '#856404' : '#721c24' }
+                      ]}>
+                        {(item.confidence * 100).toFixed(0)}%
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <Text style={styles.chunkSnippet} numberOfLines={3}>
+                    {item.text_snippet}
+                  </Text>
+                  
+                  <Text style={styles.questionsPreview}>
+                    🤔 {item.socratic_questions.length} Socratic questions
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+            style={styles.modalContent}
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderChunkDetailModal = () => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={chunkDetailModalVisible}
+      onRequestClose={() => setChunkDetailModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>📄 Chunk Details</Text>
+            <TouchableOpacity 
+              onPress={() => setChunkDetailModalVisible(false)}
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+          
+          {selectedChunk && (
+            <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+              <View style={styles.detailCard}>
+                <Text style={styles.detailTitle}>{selectedChunk.summary}</Text>
+                
+                <View style={styles.detailMetadata}>
+                  <View style={styles.metadataItem}>
+                    <Text style={styles.metadataLabel}>File:</Text>
+                    <Text style={styles.metadataValue}>{selectedChunk.filename}</Text>
+                  </View>
+                  <View style={styles.metadataItem}>
+                    <Text style={styles.metadataLabel}>Page:</Text>
+                    <Text style={styles.metadataValue}>{selectedChunk.page_number}</Text>
+                  </View>
+                  <View style={styles.metadataItem}>
+                    <Text style={styles.metadataLabel}>Confidence:</Text>
+                    <Text style={[
+                      styles.metadataValue,
+                      { color: selectedChunk.confidence > 0.8 ? '#28a745' : selectedChunk.confidence > 0.5 ? '#ffc107' : '#dc3545' }
+                    ]}>
+                      {(selectedChunk.confidence * 100).toFixed(0)}%
+                    </Text>
+                  </View>
+                </View>
+                
+                <View style={styles.contentSection}>
+                  <Text style={styles.detailSectionTitle}>📝 Content</Text>
+                  <Text style={styles.contentText}>{selectedChunk.text_snippet}</Text>
+                </View>
+                
+                <View style={styles.questionsSection}>
+                  <Text style={styles.detailSectionTitle}>🤔 Socratic Questions</Text>
+                  {selectedChunk.socratic_questions.map((question, index) => (
+                    <View key={index} style={styles.questionItem}>
+                      <Text style={styles.questionNumber}>{index + 1}.</Text>
+                      <Text style={styles.questionText}>{question}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
 
   return (
     <View style={styles.container}>
@@ -360,35 +521,47 @@ const UploadScreen = () => {
 
       {renderAnimation()}
 
-      {activeUploads.length > 0 && (
-        <View style={styles.resultsContainer}>
-          <Text style={styles.sectionTitle}>
-            🔄 Processing Status ({activeUploads.length} files):
-          </Text>
-          <FlatList
-            data={activeUploads}
-            keyExtractor={(item) => item.upload_id}
-            renderItem={renderProcessingStatus}
-            style={styles.processingList}
-            showsVerticalScrollIndicator={false}
-          />
-        </View>
-      )}
+      {/* Status and Chunks Action Buttons */}
+      <View style={styles.actionButtonsContainer}>
+        {activeUploads.length > 0 && (
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => setStatusModalVisible(true)}
+          >
+            <LinearGradient
+              colors={['#007BFF', '#0056b3']}
+              style={styles.actionButtonGradient}
+            >
+              <Ionicons name="analytics" size={20} color="white" />
+              <Text style={styles.actionButtonText}>
+                View Status ({activeUploads.length})
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
 
-      {processedChunks.length > 0 && (
-        <View style={styles.resultsContainer}>
-          <Text style={styles.sectionTitle}>
-            📋 Processed Chunks ({processedChunks.length}):
-          </Text>
-          <FlatList
-            data={processedChunks}
-            keyExtractor={(item) => item.chunk_id}
-            renderItem={renderChunkItem}
-            style={styles.chunksList}
-            showsVerticalScrollIndicator={false}
-          />
-        </View>
-      )}
+        {processedChunks.length > 0 && (
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => setChunksModalVisible(true)}
+          >
+            <LinearGradient
+              colors={['#28a745', '#1e7e34']}
+              style={styles.actionButtonGradient}
+            >
+              <Ionicons name="library" size={20} color="white" />
+              <Text style={styles.actionButtonText}>
+                View Chunks ({processedChunks.length})
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Modals */}
+      {renderStatusModal()}
+      {renderChunksModal()}
+      {renderChunkDetailModal()}
     </View>
   );
 };
@@ -467,84 +640,98 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginTop: 20,
   },
-  resultsContainer: {
-    flex: 1,
+  actionButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
     marginTop: 20,
+    paddingHorizontal: 10,
   },
-  chunksList: {
+  actionButton: {
     flex: 1,
+    marginHorizontal: 5,
+    borderRadius: 12,
+    overflow: "hidden",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  chunkItem: {
-    backgroundColor: "#f8f9fa",
-    padding: 15,
-    marginBottom: 10,
-    borderRadius: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: "#007BFF",
-  },
-  chunkHeader: {
+  actionButtonGradient: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
-  chunkSummary: {
-    fontSize: 16,
+  actionButtonText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContainer: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    width: SCREEN_WIDTH * 0.9,
+    maxHeight: SCREEN_HEIGHT * 0.8,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e9ecef",
+  },
+  modalTitle: {
+    fontSize: 18,
     fontWeight: "600",
     color: "#333",
   },
-  metadataRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginLeft: 10,
+  closeButton: {
+    padding: 5,
   },
-  filename: {
-    fontSize: 12,
-    color: "#666",
+  modalContent: {
+    flex: 1,
+    paddingHorizontal: 20,
   },
-  pageNumber: {
-    fontSize: 12,
-    color: "#666",
-    marginLeft: 10,
+  
+  // Status Modal Styles
+  statusCard: {
+    marginVertical: 8,
+    borderRadius: 12,
+    overflow: "hidden",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
   },
-  confidence: {
-    fontSize: 12,
-    color: "#666",
-  },
-  chunkSnippet: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 10,
-    fontStyle: "italic",
-  },
-  questionsContainer: {
-    marginTop: 10,
-  },
-  questionsTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#007BFF",
-    marginBottom: 5,
-  },
-  question: {
-    fontSize: 14,
-    color: "#333",
-    marginBottom: 3,
-    paddingLeft: 10,
-  },
-  processingItem: {
-    backgroundColor: "#f8f9fa",
+  statusCardGradient: {
     padding: 15,
-    marginBottom: 10,
-    borderRadius: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: "#007BFF",
   },
-  processingHeader: {
+  statusHeader: {
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
   },
-  processingTitle: {
+  statusTitle: {
     fontSize: 16,
     fontWeight: "600",
     color: "#333",
@@ -553,70 +740,205 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#666",
   },
-  processingMessage: {
+  statusMessage: {
     fontSize: 14,
     color: "#666",
-    marginBottom: 10,
+    marginBottom: 12,
   },
-  statusContainer: {
-    marginBottom: 10,
+  progressSection: {
+    marginBottom: 12,
   },
-  statusText: {
+  progressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  progressStage: {
     fontSize: 14,
     fontWeight: "600",
     color: "#333",
   },
-  progressBar: {
-    height: 10,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 5,
-    marginBottom: 5,
+  progressPercentage: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#007BFF",
   },
-  progressFill: {
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: "#e9ecef",
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  progressBar: {
     height: "100%",
     backgroundColor: "#007BFF",
-    borderRadius: 5,
+    borderRadius: 4,
   },
-  statusMessage: {
-    fontSize: 14,
+  progressMessage: {
+    fontSize: 12,
     color: "#666",
   },
-  progressRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 5,
-  },
-  featuresContainer: {
-    marginBottom: 10,
+  featuresSection: {
+    marginBottom: 12,
   },
   featuresTitle: {
     fontSize: 14,
     fontWeight: "600",
     color: "#333",
-    marginBottom: 5,
+    marginBottom: 8,
   },
   featuresGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
   },
-  featureTag: {
+  featureChip: {
     backgroundColor: "#e7f3ff",
-    color: "#007BFF",
-    fontSize: 12,
-    fontWeight: "500",
-    padding: 5,
-    marginRight: 5,
-    marginBottom: 5,
-    borderRadius: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 6,
+    marginBottom: 6,
   },
-  chunkCount: {
+  featureText: {
+    fontSize: 12,
+    color: "#007BFF",
+    fontWeight: "500",
+  },
+  chunkInfo: {
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
+  },
+  
+  // Chunks Modal Styles
+  chunkCard: {
+    marginVertical: 6,
+    borderRadius: 12,
+    overflow: "hidden",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+  },
+  chunkCardGradient: {
+    padding: 15,
+  },
+  chunkHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  chunkSummary: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    flex: 1,
+  },
+  chunkMetadata: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  chunkFilename: {
+    fontSize: 12,
+    color: "#666",
+    marginRight: 12,
+  },
+  chunkPage: {
+    fontSize: 12,
+    color: "#666",
+    marginRight: 12,
+  },
+  confidenceBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  confidenceText: {
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  chunkSnippet: {
     fontSize: 14,
     color: "#666",
+    marginBottom: 8,
+    lineHeight: 20,
   },
-  processingList: {
-    maxHeight: 200,
+  questionsPreview: {
+    fontSize: 12,
+    color: "#007BFF",
+    fontWeight: "500",
+  },
+  
+  // Chunk Detail Modal Styles
+  detailCard: {
+    padding: 15,
+  },
+  detailTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
     marginBottom: 15,
+  },
+  detailMetadata: {
+    marginBottom: 20,
+  },
+  metadataItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  metadataLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#666",
+    width: 80,
+  },
+  metadataValue: {
+    fontSize: 14,
+    color: "#333",
+    flex: 1,
+  },
+  contentSection: {
+    marginBottom: 20,
+  },
+  detailSectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 10,
+  },
+  contentText: {
+    fontSize: 14,
+    color: "#666",
+    lineHeight: 22,
+    backgroundColor: "#f8f9fa",
+    padding: 12,
+    borderRadius: 8,
+  },
+  questionsSection: {
+    marginBottom: 20,
+  },
+  questionItem: {
+    flexDirection: "row",
+    marginBottom: 12,
+    alignItems: "flex-start",
+  },
+  questionNumber: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#007BFF",
+    marginRight: 8,
+    marginTop: 2,
+  },
+  questionText: {
+    fontSize: 14,
+    color: "#333",
+    flex: 1,
+    lineHeight: 20,
   },
 });
 
