@@ -1,15 +1,23 @@
 from celery import Celery
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Broker & backend (can come from your .env)
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
 
+print(f"🔧 Celery Configuration:")
+print(f"   - Broker URL: {CELERY_BROKER_URL}")
+print(f"   - Result Backend: {CELERY_RESULT_BACKEND}")
+
 celery_app = Celery(
     "socratic",
     broker=CELERY_BROKER_URL,
     backend=CELERY_RESULT_BACKEND,
-    include=["main"]  # since tasks live here
+    include=["tasks"]  # Updated to include tasks module instead of main
 )
 
 celery_app.conf.update(
@@ -29,10 +37,7 @@ celery_app.conf.update(
     broker_connection_retry_on_startup=True,
     broker_connection_retry=True,
     broker_connection_max_retries=10,
-    # Task routing and execution settings
-    task_routes={
-        'main.process_chunks': {'queue': 'chunks_processing'},
-    },
+    # Use default queue for all tasks to simplify
     task_default_queue='default',
     # Memory and resource management
     worker_disable_rate_limits=True,

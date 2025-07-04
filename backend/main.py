@@ -144,7 +144,7 @@ async def upload_doc(file: UploadFile = File(...), db: Session = Depends(get_db)
         store_temp_chunks(upload_id, structured_chunks, db)
         print("stored_temp_chunks")
         # ✅ Launch background processing task
-        celery_app.send_task("main.process_chunks", args=[upload_id])
+        celery_app.send_task("tasks.process_chunks", args=[upload_id])
         print("launched_task")
         
         # ✅ Generate preview chunks with real summaries and questions
@@ -413,104 +413,10 @@ def split_into_chapters(text: str) -> List[Document]:
     return documents
 
 
-@celery_app.task(name="main.process_chunks")
-def process_chunks(upload_id: str):
-    """Process chunks with proper database session management"""
-    # Create a new database session for this specific task
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-    
-    # Create a fresh engine and session for this worker to avoid connection sharing issues
-    engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_recycle=300)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    db = SessionLocal()
-    
-    try:
-        print(f"Starting processing for upload_id: {upload_id}")
-        
-        # Load temp chunks
-        chunks = load_temp_chunks_from_db(upload_id, db)
-        print(f"Loaded {len(chunks)} chunks")
-        
-        if not chunks:
-            print(f"No chunks found for upload_id: {upload_id}")
-            return
-        
-        total_chunks = len(chunks)
-        processed_count = 0
-
-        for chunk in chunks:
-            try:
-                # Check if processing should be aborted
-                if is_aborted(upload_id, db):
-                    print(f"Processing aborted for upload_id: {upload_id}")
-                    break
-
-                print(f"Processing chunk {chunk.chunk_index + 1}/{total_chunks}")
-                
-                # Summarize + Socratic Qs
-                summary, questions, confidence = get_summary_and_questions(chunk.text_)
-                
-                # Embed + Store  
-                embedding = embed_chunk(chunk.text_)
-                upload_uuid = uuid_lib.UUID(upload_id) if isinstance(upload_id, str) else upload_id
-                store_final_chunk(upload_uuid, chunk, summary, questions, confidence, embedding, db)
-
-                # Update progress
-                update_progress(upload_id, db)
-                processed_count += 1
-                
-                print(f"Successfully processed chunk {chunk.chunk_index}")
-                
-            except Exception as e:
-                print(f"Error processing chunk {chunk.chunk_index}: {e}")
-                # Store error information but continue processing
-                try:
-                    upload_uuid = uuid_lib.UUID(upload_id) if isinstance(upload_id, str) else upload_id
-                    upload = db.query(PdfUploads).filter(PdfUploads.id == upload_uuid).first()
-                    if upload:
-                        error_msg = f"Error processing chunk {chunk.chunk_index}: {str(e)}"
-                        if upload.error_log:
-                            upload.error_log += f"\n{error_msg}"
-                        else:
-                            upload.error_log = error_msg
-                        db.commit()
-                except Exception as db_error:
-                    print(f"Error updating error log: {db_error}")
-                
-                # Continue with next chunk instead of failing completely
-                continue
-
-        # Mark as complete if we processed all chunks successfully
-        if processed_count > 0:
-            mark_complete(upload_id, db)
-            print(f"Processing completed for upload_id: {upload_id}")
-        else:
-            print(f"No chunks were successfully processed for upload_id: {upload_id}")
-            
-    except Exception as e:
-        print(f"Critical error in process_chunks: {e}")
-        # Mark upload as failed
-        try:
-            upload_uuid = uuid_lib.UUID(upload_id) if isinstance(upload_id, str) else upload_id
-            upload = db.query(PdfUploads).filter(PdfUploads.id == upload_uuid).first()
-            if upload:
-                upload.status = "FAILED"
-                upload.error_log = f"Processing failed: {str(e)}"
-                db.commit()
-        except Exception as db_error:
-            print(f"Error updating failed status: {db_error}")
-    finally:
-        # Ensure database session is properly closed
-        try:
-            db.close()
-            engine.dispose()
-        except Exception as cleanup_error:
-            print(f"Error during cleanup: {cleanup_error}")
-
-
 def store_temp_chunks(upload_id: str, chunks: List[Document], db: Session):
     upload_uuid = uuid_lib.UUID(upload_id) if isinstance(upload_id, str) else upload_id
+    print("----")
+    print("upload_uuid", upload_uuid)
     for idx, doc in enumerate(chunks):
         chunk_uuid = uuid_lib.uuid4()
         temp = TempChunks(
@@ -523,20 +429,6 @@ def store_temp_chunks(upload_id: str, chunks: List[Document], db: Session):
         )
         db.add(temp)
     db.commit()
-
-
-def load_temp_chunks_from_db(upload_id: str, db_session: Session) -> List[TempChunks]:
-    """Load temp chunks with better error handling"""
-    try:
-        upload_uuid = uuid_lib.UUID(upload_id) if isinstance(upload_id, str) else upload_id
-        chunks = db_session.query(TempChunks).filter(
-            TempChunks.upload_id == upload_uuid
-        ).order_by(TempChunks.chunk_index).all()
-        return chunks
-    except Exception as e:
-        print(f"Error loading temp chunks for upload_id {upload_id}: {e}")
-        db_session.rollback()
-        raise
 
 
 def store_upload_metadata(upload_id: str, filename: str, total_chunks: int, db: Session):
@@ -558,12 +450,6 @@ def estimate_time(upload) -> str:
         return f"{estimate} seconds"
     else:
         return f"{estimate // 60}–{(estimate + 59) // 60} mins"
-
-
-def is_aborted(upload_id: str, db: Session) -> bool:
-    upload_uuid = uuid_lib.UUID(upload_id) if isinstance(upload_id, str) else upload_id
-    upload = db.query(PdfUploads).filter(PdfUploads.id == upload_uuid).first()
-    return upload and upload.status == "ABORTED"
 
 
 def get_summary_and_questions(text: str) -> Tuple[str, List[str], float]:
@@ -655,66 +541,13 @@ def get_summary_and_questions(text: str) -> Tuple[str, List[str], float]:
         return fallback_summary, fallback_questions, 0.2
 
 
-def embed_chunk(text: str) -> List[float]:
-    embedder = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2")
-    return embedder.embed_query(text)
-
-
-def store_final_chunk(upload_id: uuid_lib.UUID, chunk: TempChunks, summary: str, questions: List[str], confidence: float, embedding: List[float], db: Session):
-    """Store final chunk with better error handling"""
-    try:
-        vector = FinalChunks(
-            upload_id=str(upload_id),  # Store as string to match the model
-            text_snippet=chunk.text_[:300] + ("..." if len(chunk.text_) > 300 else ""),
-            embedding=embedding,
-            summary=summary,
-            socratic_questions=questions,
-            page_number=chunk.page_number,
-            confidence=confidence
-        )
-        db.add(vector)
-        db.commit()
-    except Exception as e:
-        print(f"Error storing final chunk: {e}")
-        db.rollback()
-        raise
-
-
-def update_progress(upload_id: str, db: Session):
-    """Update progress with better error handling"""
-    try:
-        upload_uuid = uuid_lib.UUID(upload_id) if isinstance(upload_id, str) else upload_id
-        upload = db.query(PdfUploads).filter(PdfUploads.id == upload_uuid).first()
-        if upload:
-            upload.processed_chunks += 1
-            db.commit()
-    except Exception as e:
-        print(f"Error updating progress: {e}")
-        db.rollback()
-        raise
-
-
-def mark_complete(upload_id: str, db: Session):
-    """Mark upload as complete with better error handling"""
-    try:
-        upload_uuid = uuid_lib.UUID(upload_id) if isinstance(upload_id, str) else upload_id
-        upload = db.query(PdfUploads).filter(PdfUploads.id == upload_uuid).first()
-        if upload:
-            upload.status = "COMPLETED"
-            db.commit()
-    except Exception as e:
-        print(f"Error marking complete: {e}")
-        db.rollback()
-        raise
-
-
 @app.get("/upload_status/{upload_id}")
 def get_upload_status(upload_id: str, db: Session = Depends(get_db)):
     """Get the current processing status of an upload with comprehensive information"""
     try:
         upload_uuid = uuid_lib.UUID(upload_id)
         upload = db.query(PdfUploads).filter(PdfUploads.id == upload_uuid).first()
+        print("upload", upload)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid upload ID format")
     
@@ -990,3 +823,33 @@ def get_chunks(upload_id: str, include_preview: bool = True, db: Session = Depen
         raise HTTPException(status_code=400, detail="Invalid upload ID format")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving chunks: {str(e)}")
+
+
+@app.post("/debug/process_chunks/{upload_id}")
+def debug_process_chunks(upload_id: str, db: Session = Depends(get_db)):
+    """Debug endpoint to manually trigger process_chunks task"""
+    try:
+        # Verify upload exists
+        upload_uuid = uuid_lib.UUID(upload_id)
+        upload = db.query(PdfUploads).filter(PdfUploads.id == upload_uuid).first()
+        if not upload:
+            raise HTTPException(status_code=404, detail="Upload not found")
+        
+        # Try to send the task
+        task = celery_app.send_task("tasks.process_chunks", args=[upload_id])
+        
+        return {
+            "message": "Task sent successfully",
+            "task_id": task.id,
+            "upload_id": upload_id,
+            "upload_status": upload.status,
+            "celery_broker": os.getenv("CELERY_BROKER_URL"),
+            "celery_backend": os.getenv("CELERY_RESULT_BACKEND")
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "upload_id": upload_id,
+            "celery_broker": os.getenv("CELERY_BROKER_URL"),
+            "celery_backend": os.getenv("CELERY_RESULT_BACKEND")
+        }
