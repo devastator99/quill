@@ -105,18 +105,10 @@ class ChatResponse(BaseModel):
 
 @app.post("/upload_doc/", response_model=dict)
 async def upload_doc(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    """
-    Endpoint to upload a document, extract and chunk its text,
-    and initiate background processing for embedding and Socratic question generation.
-    Returns upload status and processing information.
-    """
-    # ✅ Check file type (using our enhanced validation)
     validate_file_type(file)
     print("validated")
-    # ✅ Generate unique upload ID
     upload_id = str(uuid_lib.uuid4())
     print("upload_id", upload_id)
-    # ✅ Save uploaded file temporarily with proper extension
     try:
         file_ext = os.path.splitext(file.filename)[-1].lower() if file.filename else ".tmp"
         if not file_ext:
