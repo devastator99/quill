@@ -23,6 +23,10 @@ import mimetypes
 import magic
 from models import TempChunks, FinalChunks, PdfUploads, Base
 from celery_worker import celery_app
+from solana.keypair import Keypair
+import base64
+from solana.publickey import PublicKey
+import nacl.signing
 # Load environment variables
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -30,6 +34,10 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Initialize FastAPI app
 app = FastAPI(title="Socratic")
+
+class LoginData(BaseModel):
+    publicKey: str
+    signature: str
 
 app.add_middleware(
     CORSMiddleware,
@@ -54,6 +62,25 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base.metadata.create_all(bind=engine)
 
 connected_clients = []
+
+
+@app.post("/login")
+async def login(data: LoginData):
+    public_key = data.publicKey
+    signature = data.signature
+    message = "Login to DocChatApp"
+    try:
+        # Convert the public key string to a PublicKey object and then to bytes
+        pubkey_bytes = PublicKey(public_key).to_bytes()
+        signature_bytes = base64.b64decode(signature)
+        message_bytes = message.encode()
+
+        verify_key = nacl.signing.VerifyKey(pubkey_bytes)
+        verify_key.verify(message_bytes, signature_bytes)
+        return {"token": "your_jwt_token_here"}
+    except Exception as e:
+        print(f"Verification error: {e}")
+        raise HTTPException(status_code=401, detail="Invalid signature")
 
 
 @app.websocket("/ws/chat")
@@ -123,23 +150,23 @@ async def upload_doc(file: UploadFile = File(...), db: Session = Depends(get_db)
             status_code=500, detail=f"Error saving file: {str(e)}")
 
     try:
-        # ✅ Extract text using our multi-format loader
+        # Extract text using our multi-format loader
         documents = load_file_to_documents(tmp_path, file.filename)
         print("documents", documents)
-        # ✅ Use intelligent structure-aware chunking
+        # Use intelligent structure-aware chunking
         structured_chunks = split_by_structure(documents)
         print("structured_chunks", structured_chunks)
-        # ✅ Store upload metadata in database
+        # Store upload metadata in database
         store_upload_metadata(upload_id, file.filename, len(structured_chunks), db)
         print("stored_upload_metadata")
-        # ✅ Store temporary chunks for background processing
+        # Store temporary chunks for background processing
         store_temp_chunks(upload_id, structured_chunks, db)
         print("stored_temp_chunks")
-        # ✅ Launch background processing task
+        # Launch background processing task
         celery_app.send_task("tasks.process_chunks", args=[upload_id])
         print("launched_task")
         
-        # ✅ Generate preview chunks with real summaries and questions
+        # Generate preview chunks with real summaries and questions
         preview_chunks = []
         for i, chunk in enumerate(structured_chunks[:3]):
             try:
@@ -167,7 +194,7 @@ async def upload_doc(file: UploadFile = File(...), db: Session = Depends(get_db)
                     "confidence": 0.5
                 })
 
-        # ✅ Clean up temp file
+        # Clean up temp file
         os.unlink(tmp_path)
         
         return {
