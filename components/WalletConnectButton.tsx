@@ -16,7 +16,7 @@ export default function WalletConnectButton() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        wallet_address: publicKey.toString(),
+        publicKey: publicKey.toString(),
         signature: base64Signature,
       }),
     });
