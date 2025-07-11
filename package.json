@@ -18,6 +18,12 @@
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/drawer": "^7.1.1",
     "@react-navigation/native": "^7.0.14",
+    "@solana-mobile/wallet-adapter-mobile": "^2.2.2",
+    "@solana/wallet-adapter-base": "^0.9.27",
+    "@solana/wallet-adapter-react": "^0.15.39",
+    "@solana/wallet-adapter-react-ui": "^0.9.39",
+    "@solana/wallet-adapter-wallets": "^0.19.37",
+    "@solana/web3.js": "^1.98.2",
     "@supabase/supabase-js": "^2.50.3",
     "axios": "^1.10.0",
     "expo": "~52.0.47",
@@ -50,7 +56,8 @@
     "react-native-svg": "15.8.0",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "~0.19.13",
-    "react-native-webview": "13.12.5"
+    "react-native-webview": "13.12.5",
+    "react-qr-code": "^2.0.18"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
