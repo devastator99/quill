@@ -5,8 +5,9 @@ package_manager = "yarn"
 resolution = true
 skip-lint = false
 
+
 [programs.localnet]
-doc_chat = "5AhcUJj8WtAqR6yfff76HyZFX7LWovRZ1bcgN9n3Rwa7"
+socratic_token = "5AhcUJj8WtAqR6yfff76HyZFX7LWovRZ1bcgN9n3Rwa7"
 
 [registry]
 url = "https://api.apr.dev"
@@ -16,4 +17,4 @@ cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run mocha -t 1000000 tests/"
+test = "yarn run mocha -r ts-node/register -t 1000000 tests/doc-chat.ts"

@@ -3,7 +3,7 @@
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
-    "test": "ANCHOR_PROVIDER_URL=\"http://localhost:8899\" ANCHOR_WALLET=\"/Users/saquibn/.config/solana/id.json\" mocha -r ts-node/register -t 1000000 tests/**/*.ts",
+    "test": "ANCHOR_PROVIDER_URL=\"http://localhost:8899\" ANCHOR_WALLET=\"/Users/saquibn/.config/solana/id.json\" mocha -r ts-node/register -t 1000000 tests/doc-chat.ts",
     "testmocha": "mocha -r ts-node/register tests/**/*.ts" 
   },
   "dependencies": {

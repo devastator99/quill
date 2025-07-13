@@ -18,30 +18,16 @@ describe("socratic_token", () => {
   let treasuryBump: number;
 
   before(async () => {
-    // Derive user account PDA
-    [userAccountPda, userAccountBump] =
-      await anchor.web3.PublicKey.findProgramAddress(
-        [Buffer.from("user"), user.publicKey.toBuffer()],
-        program.programId
-      );
-    // Derive treasury PDA
-    [treasuryPda, treasuryBump] =
-      await anchor.web3.PublicKey.findProgramAddress(
-        [Buffer.from("treasury")],
-        program.programId
-      );
-    // Create the treasury account so it exists for transfers
-    const rentExempt = await provider.connection.getMinimumBalanceForRentExemption(0);
-    const tx = new anchor.web3.Transaction().add(
-      anchor.web3.SystemProgram.createAccount({
-        fromPubkey: user.publicKey,
-        newAccountPubkey: treasuryPda,
-        lamports: rentExempt,
-        space: 0,
-        programId: anchor.web3.SystemProgram.programId,
-      })
+    // Find PDAs for user account and treasury
+    [userAccountPda, userAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from("user"), user.publicKey.toBuffer()],
+      program.programId
     );
-    await provider.sendAndConfirm(tx, []);
+    [treasuryPda, treasuryBump] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from("treasury")],
+      program.programId
+    );
+    // We remove the code that creates the treasury account because it is a PDA and should be created by the program
   });
 
   it("initialize_user: should create a user account with defaults", async () => {
@@ -287,6 +273,7 @@ describe("socratic_token", () => {
             documentRecord: docPda,
             user: poor.publicKey,
           },
+          signers: [poor],
         }
       );
       assert.fail("Expected NotDocumentOwner");
@@ -373,6 +360,7 @@ describe("socratic_token", () => {
             user: poor.publicKey,
             systemProgram: anchor.web3.SystemProgram.programId,
           },
+          signers: [poor],
         }
       );
       assert.fail("Expected InsufficientTokens");
@@ -385,6 +373,16 @@ describe("socratic_token", () => {
     // insufficient stake amount (<100)
     const ts = Math.floor(Date.now() / 1000);
     const timestamp = new BN(ts);
+
+    const [stakePda] = await anchor.web3.PublicKey.findProgramAddress(
+      [
+        Buffer.from("stake"),
+        user.publicKey.toBuffer(),
+        timestamp.toArrayLike(Buffer, "le", 8),
+      ],
+      program.programId
+    );
+
     try {
       await program.rpc.stakeTokens(
         new BN(50),
@@ -392,7 +390,7 @@ describe("socratic_token", () => {
         {
           accounts: {
             userAccount: userAccountPda,
-            stakeRecord: anchor.web3.PublicKey.default, // dummy
+            stakeRecord: stakePda,
             user: user.publicKey,
             systemProgram: anchor.web3.SystemProgram.programId,
           },
@@ -411,7 +409,7 @@ describe("socratic_token", () => {
         {
           accounts: {
             userAccount: userAccountPda,
-            stakeRecord: anchor.web3.PublicKey.default,
+            stakeRecord: stakePda,
             user: user.publicKey,
             systemProgram: anchor.web3.SystemProgram.programId,
           },

@@ -286,7 +286,7 @@ pub struct StakeRecord {
 #[derive(Accounts)]
 pub struct InitializeUser<'info> {
     #[account(
-        init,
+        init_if_needed,
         payer = user,
         space = 8 + 32 + 8 + 8 + 8 + 8 + 8,
         seeds = [b"user", user.key().as_ref()],
@@ -304,11 +304,15 @@ pub struct UploadDocument<'info> {
     #[account(
         mut,
         seeds = [b"user", user.key().as_ref()],
-        bump
+        bump,
+        // Bail out *before* ever trying to create `document_record`:
+        constraint = document_index == user_account.documents_uploaded @ SocraticError::InvalidDocumentIndex,
+        // And also check the token-balance early:
+        constraint = user_account.token_balance >= UPLOAD_DOCUMENT_COST @ SocraticError::InsufficientTokens,
     )]
     pub user_account: Account<'info, UserAccount>,
     #[account(
-        init,
+        init_if_needed,
         payer = user,
         space = 8 + 32 + 4 + 256 + 8 + 8 + 1 + 8 + 1,
         seeds = [b"document", user.key().as_ref(), document_index.to_le_bytes().as_ref()],
@@ -324,13 +328,15 @@ pub struct UploadDocument<'info> {
 #[instruction(query_text: String, query_index: u64)]
 pub struct ChatQuery<'info> {
     #[account(
-        mut,
-        seeds = [b"user", user.key().as_ref()],
-        bump
+      mut,
+      seeds = [b"user", user.key().as_ref()],
+      bump,
+      constraint = query_index == user_account.queries_made @ SocraticError::InvalidQueryIndex,
+      constraint = user_account.token_balance >= CHAT_QUERY_COST @ SocraticError::InsufficientTokens,
     )]
     pub user_account: Account<'info, UserAccount>,
     #[account(
-        init,
+        init_if_needed,
         payer = user,
         space = 8 + 32 + 4 + 512 + 8 + 8,
         seeds = [b"query", user.key().as_ref(), query_index.to_le_bytes().as_ref()],
@@ -353,7 +359,16 @@ pub struct PurchaseTokens<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
     /// CHECK: Treasury account is safe as it’s a PDA derived with seeds [b"treasury"] and controlled by the program
-    #[account(mut, seeds = [b"treasury"], bump)]
+    // #[account(mut, seeds = [b"treasury"], bump)]
+    
+     /// PDA to collect SOL payments.  If it doesn’t exist yet, create it (space = 0).
+    #[account(
+      init_if_needed,
+      payer = user,
+      seeds = [b"treasury"],
+      bump,
+      space = 0
+    )]
     pub treasury: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
 }
@@ -366,7 +381,11 @@ pub struct ShareDocument<'info> {
         bump
     )]
     pub user_account: Account<'info, UserAccount>,
-    #[account(mut)]
+    #[account(
+        mut,
+        // enforce “only the true owner may call” before anything else
+        constraint = document_record.owner == user.key() @ SocraticError::NotDocumentOwner,
+    )]
     pub document_record: Account<'info, DocumentRecord>,
     #[account(mut)]
     pub user: Signer<'info>,
@@ -378,11 +397,13 @@ pub struct GenerateQuiz<'info> {
     #[account(
         mut,
         seeds = [b"user", user.key().as_ref()],
-        bump
+        bump,
+        // catch “no tokens to pay for quiz” *before* creating the PDA
+        constraint = user_account.token_balance >= QUIZ_GENERATION_COST @ SocraticError::InsufficientTokens,
     )]
     pub user_account: Account<'info, UserAccount>,
     #[account(
-        init,
+        init_if_needed,
         payer = user,
         space = 8 + 32 + 4 + 256 + 8 + 8 + 1,
         seeds = [b"quiz", user.key().as_ref(), timestamp.to_le_bytes().as_ref()],
@@ -400,11 +421,15 @@ pub struct StakeTokens<'info> {
     #[account(
         mut,
         seeds = [b"user", user.key().as_ref()],
-        bump
+        bump,
+        // 1) check “minimum stake” first
+        constraint = amount >= MINIMUM_STAKE_AMOUNT @ SocraticError::InsufficientStakeAmount,
+        // 2) then “enough balance”
+        constraint = user_account.token_balance >= amount @ SocraticError::InsufficientTokens,
     )]
     pub user_account: Account<'info, UserAccount>,
     #[account(
-        init,
+        init_if_needed,
         payer = user,
         space = 8 + 32 + 8 + 8 + 1,
         seeds = [b"stake", user.key().as_ref(), timestamp.to_le_bytes().as_ref()],
