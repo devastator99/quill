@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 declare_id!("5AhcUJj8WtAqR6yfff76HyZFX7LWovRZ1bcgN9n3Rwa7");
 
@@ -7,7 +6,6 @@ declare_id!("5AhcUJj8WtAqR6yfff76HyZFX7LWovRZ1bcgN9n3Rwa7");
 pub mod socratic_token {
     use super::*;
 
-    // Initialize user account
     pub fn initialize_user(ctx: Context<InitializeUser>) -> Result<()> {
         let user_account = &mut ctx.accounts.user_account;
         user_account.owner = ctx.accounts.user.key();
@@ -21,23 +19,28 @@ pub mod socratic_token {
         Ok(())
     }
 
-    // Upload document with token payment
     pub fn upload_document(
         ctx: Context<UploadDocument>,
         pdf_hash: String,
         access_level: u8,
-        token_cost: u64,
+        document_index: u64,
     ) -> Result<()> {
         let user_account = &mut ctx.accounts.user_account;
         
+        // Validate document_index
+        require!(
+            document_index == user_account.documents_uploaded,
+            SocraticError::InvalidDocumentIndex
+        );
+        
         // Check if user has enough tokens
         require!(
-            user_account.token_balance >= token_cost,
+            user_account.token_balance >= UPLOAD_DOCUMENT_COST,
             SocraticError::InsufficientTokens
         );
 
         // Deduct tokens
-        user_account.token_balance -= token_cost;
+        user_account.token_balance -= UPLOAD_DOCUMENT_COST;
         user_account.documents_uploaded += 1;
 
         // Create document record
@@ -45,20 +48,29 @@ pub mod socratic_token {
         document_record.owner = ctx.accounts.user.key();
         document_record.pdf_hash = pdf_hash;
         document_record.upload_timestamp = Clock::get()?.unix_timestamp;
-        document_record.token_cost = token_cost;
+        document_record.token_cost = UPLOAD_DOCUMENT_COST;
         document_record.access_level = access_level;
         document_record.download_count = 0;
         document_record.is_active = true;
 
         msg!("Document uploaded. Hash: {}, Cost: {} tokens", 
-             document_record.pdf_hash, token_cost);
+             document_record.pdf_hash, UPLOAD_DOCUMENT_COST);
         
         Ok(())
     }
 
-    // Make a chat query
-    pub fn chat_query(ctx: Context<ChatQuery>, query_text: String) -> Result<()> {
+    pub fn chat_query(
+        ctx: Context<ChatQuery>,
+        query_text: String,
+        query_index: u64,
+    ) -> Result<()> {
         let user_account = &mut ctx.accounts.user_account;
+        
+        // Validate query_index
+        require!(
+            query_index == user_account.queries_made,
+            SocraticError::InvalidQueryIndex
+        );
         
         // Check token balance
         require!(
@@ -81,12 +93,12 @@ pub mod socratic_token {
         Ok(())
     }
 
-    // Purchase tokens with SOL
     pub fn purchase_tokens(ctx: Context<PurchaseTokens>, sol_amount: u64) -> Result<()> {
         let user_account = &mut ctx.accounts.user_account;
         
         // Calculate tokens to mint (1 SOL = 1000 tokens)
-        let tokens_to_mint = sol_amount * TOKEN_EXCHANGE_RATE;
+        let tokens_to_mint = sol_amount.checked_mul(TOKEN_EXCHANGE_RATE)
+            .ok_or(SocraticError::ArithmeticOverflow)?;
         
         // Transfer SOL to program treasury
         let cpi_context = CpiContext::new(
@@ -105,7 +117,6 @@ pub mod socratic_token {
         Ok(())
     }
 
-    // Share document (enable public access)
     pub fn share_document(ctx: Context<ShareDocument>, new_access_level: u8) -> Result<()> {
         let document_record = &mut ctx.accounts.document_record;
         let user_account = &mut ctx.accounts.user_account;
@@ -116,7 +127,7 @@ pub mod socratic_token {
             SocraticError::NotDocumentOwner
         );
 
-        // Charge tokens for sharing (incentivize quality content)
+        // Charge tokens for sharing
         require!(
             user_account.token_balance >= SHARE_DOCUMENT_COST,
             SocraticError::InsufficientTokens
@@ -129,8 +140,11 @@ pub mod socratic_token {
         Ok(())
     }
 
-    // Generate quiz from document
-    pub fn generate_quiz(ctx: Context<GenerateQuiz>, document_hash: String) -> Result<()> {
+    pub fn generate_quiz(
+        ctx: Context<GenerateQuiz>,
+        document_hash: String,
+        timestamp: u64,
+    ) -> Result<()> {
         let user_account = &mut ctx.accounts.user_account;
         
         // Check token balance
@@ -146,7 +160,7 @@ pub mod socratic_token {
         let quiz_record = &mut ctx.accounts.quiz_record;
         quiz_record.creator = ctx.accounts.user.key();
         quiz_record.document_hash = document_hash;
-        quiz_record.created_at = Clock::get()?.unix_timestamp;
+        quiz_record.created_at = timestamp as i64;
         quiz_record.tokens_spent = QUIZ_GENERATION_COST;
         quiz_record.is_public = false;
 
@@ -154,8 +168,11 @@ pub mod socratic_token {
         Ok(())
     }
 
-    // Stake tokens for premium features
-    pub fn stake_tokens(ctx: Context<StakeTokens>, amount: u64) -> Result<()> {
+    pub fn stake_tokens(
+        ctx: Context<StakeTokens>,
+        amount: u64,
+        timestamp: u64,
+    ) -> Result<()> {
         let user_account = &mut ctx.accounts.user_account;
         
         // Check if user has enough tokens
@@ -173,7 +190,7 @@ pub mod socratic_token {
         let stake_record = &mut ctx.accounts.stake_record;
         stake_record.user = ctx.accounts.user.key();
         stake_record.amount = amount;
-        stake_record.staked_at = Clock::get()?.unix_timestamp;
+        stake_record.staked_at = timestamp as i64;
         stake_record.is_active = true;
 
         // Deduct from balance
@@ -183,13 +200,18 @@ pub mod socratic_token {
         Ok(())
     }
 
-    // Unstake tokens (with cooldown period)
     pub fn unstake_tokens(ctx: Context<UnstakeTokens>) -> Result<()> {
         let stake_record = &mut ctx.accounts.stake_record;
         let user_account = &mut ctx.accounts.user_account;
         let current_time = Clock::get()?.unix_timestamp;
         
-        // Check cooldown period (7 days)
+        // Check if user is the owner of the stake record
+        require!(
+            stake_record.user == ctx.accounts.user.key(),
+            SocraticError::NotStakeOwner
+        );
+        
+        // Check cooldown period
         require!(
             current_time >= stake_record.staked_at + STAKE_COOLDOWN_PERIOD,
             SocraticError::StakeCooldownActive
@@ -204,14 +226,14 @@ pub mod socratic_token {
     }
 }
 
-// Constants for token economics
+// Constants
 const UPLOAD_DOCUMENT_COST: u64 = 10;
 const CHAT_QUERY_COST: u64 = 1;
 const QUIZ_GENERATION_COST: u64 = 5;
 const SHARE_DOCUMENT_COST: u64 = 2;
 const MINIMUM_STAKE_AMOUNT: u64 = 100;
-const TOKEN_EXCHANGE_RATE: u64 = 1000; // 1 SOL = 1000 tokens
-const STAKE_COOLDOWN_PERIOD: i64 = 7 * 24 * 60 * 60; // 7 days in seconds
+const TOKEN_EXCHANGE_RATE: u64 = 1000;
+const STAKE_COOLDOWN_PERIOD: i64 = 7 * 24 * 60 * 60;
 
 // Account structures
 #[account]
@@ -230,7 +252,7 @@ pub struct DocumentRecord {
     pub pdf_hash: String,
     pub upload_timestamp: i64,
     pub token_cost: u64,
-    pub access_level: u8, // 0=private, 1=shared, 2=public
+    pub access_level: u8,
     pub download_count: u64,
     pub is_active: bool,
 }
@@ -277,6 +299,7 @@ pub struct InitializeUser<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(pdf_hash: String, access_level: u8, document_index: u64)]
 pub struct UploadDocument<'info> {
     #[account(
         mut,
@@ -287,8 +310,8 @@ pub struct UploadDocument<'info> {
     #[account(
         init,
         payer = user,
-        space = 8 + 32 + 256 + 8 + 8 + 1 + 8 + 1,
-        seeds = [b"document", user.key().as_ref(), &user_account.documents_uploaded.to_le_bytes()],
+        space = 8 + 32 + 4 + 256 + 8 + 8 + 1 + 8 + 1,
+        seeds = [b"document", user.key().as_ref(), document_index.to_le_bytes().as_ref()],
         bump
     )]
     pub document_record: Account<'info, DocumentRecord>,
@@ -298,6 +321,7 @@ pub struct UploadDocument<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(query_text: String, query_index: u64)]
 pub struct ChatQuery<'info> {
     #[account(
         mut,
@@ -308,8 +332,8 @@ pub struct ChatQuery<'info> {
     #[account(
         init,
         payer = user,
-        space = 8 + 32 + 512 + 8 + 8,
-        seeds = [b"query", user.key().as_ref(), &user_account.queries_made.to_le_bytes()],
+        space = 8 + 32 + 4 + 512 + 8 + 8,
+        seeds = [b"query", user.key().as_ref(), query_index.to_le_bytes().as_ref()],
         bump
     )]
     pub query_record: Account<'info, QueryRecord>,
@@ -328,8 +352,8 @@ pub struct PurchaseTokens<'info> {
     pub user_account: Account<'info, UserAccount>,
     #[account(mut)]
     pub user: Signer<'info>,
-    /// CHECK: Treasury account for collecting SOL
-    #[account(mut)]
+    /// CHECK: Treasury account is safe as it’s a PDA derived with seeds [b"treasury"] and controlled by the program
+    #[account(mut, seeds = [b"treasury"], bump)]
     pub treasury: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
 }
@@ -349,6 +373,7 @@ pub struct ShareDocument<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(document_hash: String, timestamp: u64)]
 pub struct GenerateQuiz<'info> {
     #[account(
         mut,
@@ -359,8 +384,8 @@ pub struct GenerateQuiz<'info> {
     #[account(
         init,
         payer = user,
-        space = 8 + 32 + 256 + 8 + 8 + 1,
-        seeds = [b"quiz", user.key().as_ref(), &Clock::get().unwrap().unix_timestamp.to_le_bytes()],
+        space = 8 + 32 + 4 + 256 + 8 + 8 + 1,
+        seeds = [b"quiz", user.key().as_ref(), timestamp.to_le_bytes().as_ref()],
         bump
     )]
     pub quiz_record: Account<'info, QuizRecord>,
@@ -370,6 +395,7 @@ pub struct GenerateQuiz<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(amount: u64, timestamp: u64)]
 pub struct StakeTokens<'info> {
     #[account(
         mut,
@@ -381,7 +407,7 @@ pub struct StakeTokens<'info> {
         init,
         payer = user,
         space = 8 + 32 + 8 + 8 + 1,
-        seeds = [b"stake", user.key().as_ref(), &Clock::get().unwrap().unix_timestamp.to_le_bytes()],
+        seeds = [b"stake", user.key().as_ref(), timestamp.to_le_bytes().as_ref()],
         bump
     )]
     pub stake_record: Account<'info, StakeRecord>,
@@ -415,4 +441,12 @@ pub enum SocraticError {
     InsufficientStakeAmount,
     #[msg("Stake cooldown period is still active")]
     StakeCooldownActive,
+    #[msg("Invalid document index")]
+    InvalidDocumentIndex,
+    #[msg("Invalid query index")]
+    InvalidQueryIndex,
+    #[msg("You are not the owner of this stake record")]
+    NotStakeOwner,
+    #[msg("Arithmetic overflow occurred")]
+    ArithmeticOverflow,
 }

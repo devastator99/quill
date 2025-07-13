@@ -9,15 +9,20 @@ crate-type = ["cdylib", "lib"]
 name = "socratic_token"
 
 [features]
-default = []
+default = ["custom-heap", "custom-panic", "anchor-debug"]
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
 idl-build = ["anchor-lang/idl-build"]
+custom-heap = []
+custom-panic = []
+anchor-debug = []
 
 
 [dependencies]
-anchor-lang = "0.31.1"
-anchor-spl = "0.31.1"
+anchor-lang = "=0.31.1"
+anchor-spl = "=0.31.1"
+solana-program = "=2.3.0"
+
 
