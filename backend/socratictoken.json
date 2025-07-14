@@ -1,0 +1,814 @@
+{
+    "address": "5AhcUJj8WtAqR6yfff76HyZFX7LWovRZ1bcgN9n3Rwa7",
+    "metadata": {
+      "name": "socratic_token",
+      "version": "0.1.0",
+      "spec": "0.1.0",
+      "description": "Created with Anchor"
+    },
+    "instructions": [
+      {
+        "name": "chat_query",
+        "discriminator": [
+          89,
+          224,
+          210,
+          50,
+          148,
+          82,
+          144,
+          243
+        ],
+        "accounts": [
+          {
+            "name": "user_account",
+            "writable": true,
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "const",
+                  "value": [
+                    117,
+                    115,
+                    101,
+                    114
+                  ]
+                },
+                {
+                  "kind": "account",
+                  "path": "user"
+                }
+              ]
+            }
+          },
+          {
+            "name": "query_record",
+            "writable": true,
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "const",
+                  "value": [
+                    113,
+                    117,
+                    101,
+                    114,
+                    121
+                  ]
+                },
+                {
+                  "kind": "account",
+                  "path": "user"
+                },
+                {
+                  "kind": "arg",
+                  "path": "query_index"
+                }
+              ]
+            }
+          },
+          {
+            "name": "user",
+            "writable": true,
+            "signer": true
+          },
+          {
+            "name": "system_program",
+            "address": "11111111111111111111111111111111"
+          }
+        ],
+        "args": [
+          {
+            "name": "query_text",
+            "type": "string"
+          },
+          {
+            "name": "query_index",
+            "type": "u64"
+          }
+        ]
+      },
+      {
+        "name": "generate_quiz",
+        "discriminator": [
+          76,
+          94,
+          29,
+          50,
+          73,
+          31,
+          238,
+          135
+        ],
+        "accounts": [
+          {
+            "name": "user_account",
+            "writable": true,
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "const",
+                  "value": [
+                    117,
+                    115,
+                    101,
+                    114
+                  ]
+                },
+                {
+                  "kind": "account",
+                  "path": "user"
+                }
+              ]
+            }
+          },
+          {
+            "name": "quiz_record",
+            "writable": true,
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "const",
+                  "value": [
+                    113,
+                    117,
+                    105,
+                    122
+                  ]
+                },
+                {
+                  "kind": "account",
+                  "path": "user"
+                },
+                {
+                  "kind": "arg",
+                  "path": "timestamp"
+                }
+              ]
+            }
+          },
+          {
+            "name": "user",
+            "writable": true,
+            "signer": true
+          },
+          {
+            "name": "system_program",
+            "address": "11111111111111111111111111111111"
+          }
+        ],
+        "args": [
+          {
+            "name": "document_hash",
+            "type": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "u64"
+          }
+        ]
+      },
+      {
+        "name": "initialize_user",
+        "discriminator": [
+          111,
+          17,
+          185,
+          250,
+          60,
+          122,
+          38,
+          254
+        ],
+        "accounts": [
+          {
+            "name": "user_account",
+            "writable": true,
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "const",
+                  "value": [
+                    117,
+                    115,
+                    101,
+                    114
+                  ]
+                },
+                {
+                  "kind": "account",
+                  "path": "user"
+                }
+              ]
+            }
+          },
+          {
+            "name": "user",
+            "writable": true,
+            "signer": true
+          },
+          {
+            "name": "system_program",
+            "address": "11111111111111111111111111111111"
+          }
+        ],
+        "args": []
+      },
+      {
+        "name": "purchase_tokens",
+        "discriminator": [
+          142,
+          1,
+          16,
+          160,
+          115,
+          120,
+          55,
+          254
+        ],
+        "accounts": [
+          {
+            "name": "user_account",
+            "writable": true,
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "const",
+                  "value": [
+                    117,
+                    115,
+                    101,
+                    114
+                  ]
+                },
+                {
+                  "kind": "account",
+                  "path": "user"
+                }
+              ]
+            }
+          },
+          {
+            "name": "user",
+            "writable": true,
+            "signer": true
+          },
+          {
+            "name": "treasury",
+            "docs": [
+              "PDA to collect SOL payments.  If it doesn’t exist yet, create it (space = 0)."
+            ],
+            "writable": true,
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "const",
+                  "value": [
+                    116,
+                    114,
+                    101,
+                    97,
+                    115,
+                    117,
+                    114,
+                    121
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "name": "system_program",
+            "address": "11111111111111111111111111111111"
+          }
+        ],
+        "args": [
+          {
+            "name": "sol_amount",
+            "type": "u64"
+          }
+        ]
+      },
+      {
+        "name": "share_document",
+        "discriminator": [
+          21,
+          207,
+          234,
+          38,
+          150,
+          61,
+          192,
+          253
+        ],
+        "accounts": [
+          {
+            "name": "user_account",
+            "writable": true,
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "const",
+                  "value": [
+                    117,
+                    115,
+                    101,
+                    114
+                  ]
+                },
+                {
+                  "kind": "account",
+                  "path": "user"
+                }
+              ]
+            }
+          },
+          {
+            "name": "document_record",
+            "writable": true
+          },
+          {
+            "name": "user",
+            "writable": true,
+            "signer": true
+          }
+        ],
+        "args": [
+          {
+            "name": "new_access_level",
+            "type": "u8"
+          }
+        ]
+      },
+      {
+        "name": "stake_tokens",
+        "discriminator": [
+          136,
+          126,
+          91,
+          162,
+          40,
+          131,
+          13,
+          127
+        ],
+        "accounts": [
+          {
+            "name": "user_account",
+            "writable": true,
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "const",
+                  "value": [
+                    117,
+                    115,
+                    101,
+                    114
+                  ]
+                },
+                {
+                  "kind": "account",
+                  "path": "user"
+                }
+              ]
+            }
+          },
+          {
+            "name": "stake_record",
+            "writable": true,
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "const",
+                  "value": [
+                    115,
+                    116,
+                    97,
+                    107,
+                    101
+                  ]
+                },
+                {
+                  "kind": "account",
+                  "path": "user"
+                },
+                {
+                  "kind": "arg",
+                  "path": "timestamp"
+                }
+              ]
+            }
+          },
+          {
+            "name": "user",
+            "writable": true,
+            "signer": true
+          },
+          {
+            "name": "system_program",
+            "address": "11111111111111111111111111111111"
+          }
+        ],
+        "args": [
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "u64"
+          }
+        ]
+      },
+      {
+        "name": "unstake_tokens",
+        "discriminator": [
+          58,
+          119,
+          215,
+          143,
+          203,
+          223,
+          32,
+          86
+        ],
+        "accounts": [
+          {
+            "name": "user_account",
+            "writable": true,
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "const",
+                  "value": [
+                    117,
+                    115,
+                    101,
+                    114
+                  ]
+                },
+                {
+                  "kind": "account",
+                  "path": "user"
+                }
+              ]
+            }
+          },
+          {
+            "name": "stake_record",
+            "writable": true
+          },
+          {
+            "name": "user",
+            "writable": true,
+            "signer": true
+          }
+        ],
+        "args": []
+      },
+      {
+        "name": "upload_document",
+        "discriminator": [
+          59,
+          81,
+          10,
+          45,
+          108,
+          131,
+          79,
+          128
+        ],
+        "accounts": [
+          {
+            "name": "user_account",
+            "writable": true,
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "const",
+                  "value": [
+                    117,
+                    115,
+                    101,
+                    114
+                  ]
+                },
+                {
+                  "kind": "account",
+                  "path": "user"
+                }
+              ]
+            }
+          },
+          {
+            "name": "document_record",
+            "writable": true,
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "const",
+                  "value": [
+                    100,
+                    111,
+                    99,
+                    117,
+                    109,
+                    101,
+                    110,
+                    116
+                  ]
+                },
+                {
+                  "kind": "account",
+                  "path": "user"
+                },
+                {
+                  "kind": "arg",
+                  "path": "document_index"
+                }
+              ]
+            }
+          },
+          {
+            "name": "user",
+            "writable": true,
+            "signer": true
+          },
+          {
+            "name": "system_program",
+            "address": "11111111111111111111111111111111"
+          }
+        ],
+        "args": [
+          {
+            "name": "pdf_hash",
+            "type": "string"
+          },
+          {
+            "name": "access_level",
+            "type": "u8"
+          },
+          {
+            "name": "document_index",
+            "type": "u64"
+          }
+        ]
+      }
+    ],
+    "accounts": [
+      {
+        "name": "DocumentRecord",
+        "discriminator": [
+          13,
+          153,
+          55,
+          14,
+          109,
+          39,
+          136,
+          125
+        ]
+      },
+      {
+        "name": "QueryRecord",
+        "discriminator": [
+          185,
+          152,
+          92,
+          99,
+          187,
+          101,
+          226,
+          8
+        ]
+      },
+      {
+        "name": "QuizRecord",
+        "discriminator": [
+          139,
+          218,
+          149,
+          166,
+          224,
+          204,
+          234,
+          182
+        ]
+      },
+      {
+        "name": "StakeRecord",
+        "discriminator": [
+          174,
+          163,
+          11,
+          208,
+          150,
+          236,
+          11,
+          205
+        ]
+      },
+      {
+        "name": "UserAccount",
+        "discriminator": [
+          211,
+          33,
+          136,
+          16,
+          186,
+          110,
+          242,
+          127
+        ]
+      }
+    ],
+    "errors": [
+      {
+        "code": 6000,
+        "name": "InsufficientTokens",
+        "msg": "Insufficient tokens to perform this action"
+      },
+      {
+        "code": 6001,
+        "name": "NotDocumentOwner",
+        "msg": "You are not the owner of this document"
+      },
+      {
+        "code": 6002,
+        "name": "InsufficientStakeAmount",
+        "msg": "Insufficient amount to stake"
+      },
+      {
+        "code": 6003,
+        "name": "StakeCooldownActive",
+        "msg": "Stake cooldown period is still active"
+      },
+      {
+        "code": 6004,
+        "name": "InvalidDocumentIndex",
+        "msg": "Invalid document index"
+      },
+      {
+        "code": 6005,
+        "name": "InvalidQueryIndex",
+        "msg": "Invalid query index"
+      },
+      {
+        "code": 6006,
+        "name": "NotStakeOwner",
+        "msg": "You are not the owner of this stake record"
+      },
+      {
+        "code": 6007,
+        "name": "ArithmeticOverflow",
+        "msg": "Arithmetic overflow occurred"
+      }
+    ],
+    "types": [
+      {
+        "name": "DocumentRecord",
+        "type": {
+          "kind": "struct",
+          "fields": [
+            {
+              "name": "owner",
+              "type": "pubkey"
+            },
+            {
+              "name": "pdf_hash",
+              "type": "string"
+            },
+            {
+              "name": "upload_timestamp",
+              "type": "i64"
+            },
+            {
+              "name": "token_cost",
+              "type": "u64"
+            },
+            {
+              "name": "access_level",
+              "type": "u8"
+            },
+            {
+              "name": "download_count",
+              "type": "u64"
+            },
+            {
+              "name": "is_active",
+              "type": "bool"
+            }
+          ]
+        }
+      },
+      {
+        "name": "QueryRecord",
+        "type": {
+          "kind": "struct",
+          "fields": [
+            {
+              "name": "user",
+              "type": "pubkey"
+            },
+            {
+              "name": "query_text",
+              "type": "string"
+            },
+            {
+              "name": "timestamp",
+              "type": "i64"
+            },
+            {
+              "name": "tokens_spent",
+              "type": "u64"
+            }
+          ]
+        }
+      },
+      {
+        "name": "QuizRecord",
+        "type": {
+          "kind": "struct",
+          "fields": [
+            {
+              "name": "creator",
+              "type": "pubkey"
+            },
+            {
+              "name": "document_hash",
+              "type": "string"
+            },
+            {
+              "name": "created_at",
+              "type": "i64"
+            },
+            {
+              "name": "tokens_spent",
+              "type": "u64"
+            },
+            {
+              "name": "is_public",
+              "type": "bool"
+            }
+          ]
+        }
+      },
+      {
+        "name": "StakeRecord",
+        "type": {
+          "kind": "struct",
+          "fields": [
+            {
+              "name": "user",
+              "type": "pubkey"
+            },
+            {
+              "name": "amount",
+              "type": "u64"
+            },
+            {
+              "name": "staked_at",
+              "type": "i64"
+            },
+            {
+              "name": "is_active",
+              "type": "bool"
+            }
+          ]
+        }
+      },
+      {
+        "name": "UserAccount",
+        "type": {
+          "kind": "struct",
+          "fields": [
+            {
+              "name": "owner",
+              "type": "pubkey"
+            },
+            {
+              "name": "token_balance",
+              "type": "u64"
+            },
+            {
+              "name": "documents_uploaded",
+              "type": "u64"
+            },
+            {
+              "name": "queries_made",
+              "type": "u64"
+            },
+            {
+              "name": "reputation_score",
+              "type": "u64"
+            },
+            {
+              "name": "created_at",
+              "type": "i64"
+            }
+          ]
+        }
+      }
+    ]
+  }
