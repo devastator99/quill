@@ -2,8 +2,9 @@ import base64
 import os
 import uuid as uuid_lib
 from typing import List, Optional, Tuple
+from fastapi import Form
 from tempfile import NamedTemporaryFile
-
+from solathon import PublicKey
 import jwt
 from datetime import datetime, timedelta
 import nacl.signing
@@ -17,8 +18,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from sqlalchemy.orm import Session
-from solana.publickey import PublicKey
-from solana.transaction import Transaction
+from solathon import Transaction
 from collections import defaultdict
 import asyncio
 from langchain.schema import Document
@@ -35,6 +35,8 @@ from schema import (
     PurchaseTokensBlockchainRequest,
     ShareDocumentBlockchainRequest,
     ChatQueryBlockchainRequest,
+)
+from models import (
     PdfUploads,
     TempChunks,
     FinalChunks,
@@ -218,11 +220,11 @@ async def prepare_upload_document_transaction(
 @router.post("/upload_doc/verify", response_model=dict)
 async def verify_and_process_upload(
     file: UploadFile = File(...),
-    transaction_signature: str = None,
-    pdf_hash: str = None,
-    access_level: int = None,
-    document_index: int = None,
-    user_public_key: str = None,
+    transaction_signature: str = Form(...),
+    pdf_hash: str = Form(...),
+    access_level: int = Form(...),
+    document_index: int = Form(...),
+    user_public_key: str = Form(...),
     db: Session = Depends(get_db),
 ):
     """Verify transaction and process document upload"""

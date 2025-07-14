@@ -2,20 +2,26 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import Base, engine
-from solana_utils import shutdown_event
+from solana_utils import shared_solana_client 
 from endpoints import router
 
-# Initialize FastAPI app
 app = FastAPI(title="Socratic")
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
-@app.on_event("shutdown")
-async def app_shutdown_event():
-    await shutdown_event()
-
+# Include API endpoints
 app.include_router(router)
+
+@app.on_event("startup")
+async def startup_event():
+    # Any startup tasks can be added here
+    pass
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await shared_solana_client.close()
+
 
 app.add_middleware(
     CORSMiddleware,

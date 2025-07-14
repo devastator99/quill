@@ -1,16 +1,20 @@
 import base58
 import asyncio
+import hashlib
 import json
 import os
 from typing import List, Tuple
 
 from fastapi import FastAPI
-from solana.publickey import PublicKey
-from solana.rpc.async_api import AsyncClient
-from solana.transaction import Transaction
-from solana.rpc.commitment import Commitment
-from anchorpy import Idl, Program, Provider, Context
-from anchorpy.coder.instruction import AnchorInstructionCoder
+import borsh_construct as borsh
+from solathon import Client, Transaction
+from solathon import PublicKey
+from solathon.core.instructions import Instruction, AccountMeta
+from solathon.core.types import Commitment
+
+# AnchorPy related imports (will be replaced or re-implemented)
+# from anchorpy import Idl, Program, Provider, Context
+# from anchorpy.coder.instruction import AnchorInstructionCoder
 
 from config import PROGRAM_ID, MAX_RETRIES, RETRY_DELAY, SOLANA_RPC_URL
 
@@ -20,33 +24,24 @@ app = FastAPI()
 PROGRAM_PUBKEY = PublicKey(PROGRAM_ID)
 
 # Shared Solana RPC client
-shared_solana_client = AsyncClient(SOLANA_RPC_URL)
+shared_solana_client = Client(SOLANA_RPC_URL)
 
-# Load the IDL
+# Load the IDL for manual instruction building
 idl_path = os.path.join(os.path.dirname(__file__), "socratictoken.json")
 try:
     with open(idl_path, "r") as f:
-        idl = Idl.from_json(json.load(f))
+        idl = json.load(f)
 except FileNotFoundError:
     raise FileNotFoundError(f"IDL file not found at {idl_path}")
 except Exception as e:
     raise Exception(f"Error loading IDL: {e}")
 
-# A no-op wallet for building unsigned transactions
-class NoOpWallet:
-    def public_key(self) -> PublicKey:
-        return PublicKey("11111111111111111111111111111111")
-    def sign_transaction(self, tx: Transaction) -> Transaction:
-        return tx
-
-# AnchorPy setup
-provider = Provider(shared_solana_client, NoOpWallet())
-program = Program(idl, PROGRAM_PUBKEY, provider)
+# Anchor program interaction will be handled directly using solathon's Instruction class.
+# NoOpWallet, Provider, and Program objects from AnchorPy are no longer needed.
 
 
 class SolanaTransactionBuilder:
-    def __init__(self, program: Program, client: AsyncClient):
-        self.program = program
+    def __init__(self, client: Client):
         self.client = client
 
     async def build_upload_document_transaction(
@@ -66,16 +61,44 @@ class SolanaTransactionBuilder:
             PROGRAM_PUBKEY
         )
 
-        instruction = self.program.instruction.upload_document(
-            pdf_hash, access_level, document_index,
-            ctx=Context(
-                accounts={
-                    "user_account": user_account_pda,
-                    "document_record": document_record_pda,
-                    "user": user_pubkey,
-                    "system_program": PublicKey("11111111111111111111111111111111"),
-                }
-            ),
+        # Define the Borsh schema for the instruction arguments
+        # Based on the IDL for 'upload_document' instruction
+        upload_document_args = borsh.CStruct(
+            "pdf_hash" / borsh.String,
+            "access_level" / borsh.U8,
+            "document_index" / borsh.U64,
+        )
+
+        # Serialize the instruction arguments
+        instruction_data = upload_document_args.build({
+            "pdf_hash": pdf_hash,
+            "access_level": access_level,
+            "document_index": document_index,
+        })
+
+        # Instruction discriminator (first 8 bytes of SHA256 of 'global:upload_document')
+        # This needs to be prepended to the instruction data
+        # For Anchor, the discriminator is the first 8 bytes of the SHA256 hash of 'global:<instruction_name>'
+        # I'll need to calculate this or find a way to get it from the IDL.
+        # For now, I'll use a placeholder or a common way to derive it.
+        # A common approach is to use 'hashlib.sha256(b"global:upload_document").digest()[:8]'
+        import hashlib
+        discriminator = hashlib.sha256(b"global:upload_document").digest()[:8]
+        full_instruction_data = discriminator + instruction_data
+
+        # Define the AccountMeta list
+        accounts = [
+            AccountMeta(pubkey=user_account_pda, is_signer=False, is_writable=True),
+            AccountMeta(pubkey=document_record_pda, is_signer=False, is_writable=True),
+            AccountMeta(pubkey=user_pubkey, is_signer=True, is_writable=False),
+            AccountMeta(pubkey=PublicKey("11111111111111111111111111111111"), is_signer=False, is_writable=False), # System Program
+        ]
+
+        # Create the solathon Instruction object
+        instruction = Instruction(
+            program_id=PROGRAM_PUBKEY,
+            accounts=accounts,
+            data=full_instruction_data,
         )
 
         tx = Transaction()
@@ -101,16 +124,35 @@ class SolanaTransactionBuilder:
             PROGRAM_PUBKEY
         )
 
-        instruction = self.program.instruction.chat_query(
-            query_text, query_index,
-            ctx=Context(
-                accounts={
-                    "user_account": user_account_pda,
-                    "query_record": query_record_pda,
-                    "user": user_pubkey,
-                    "system_program": PublicKey("11111111111111111111111111111111"),
-                }
-            ),
+        # Define the Borsh schema for the instruction arguments
+        chat_query_args = borsh.CStruct(
+            "query_text" / borsh.String,
+            "query_index" / borsh.U64,
+        )
+
+        # Serialize the instruction arguments
+        instruction_data = chat_query_args.build({
+            "query_text": query_text,
+            "query_index": query_index,
+        })
+
+        # Instruction discriminator
+        discriminator = hashlib.sha256(b"global:chat_query").digest()[:8]
+        full_instruction_data = discriminator + instruction_data
+
+        # Define the AccountMeta list
+        accounts = [
+            AccountMeta(pubkey=user_account_pda, is_signer=False, is_writable=True),
+            AccountMeta(pubkey=query_record_pda, is_signer=False, is_writable=True),
+            AccountMeta(pubkey=user_pubkey, is_signer=True, is_writable=False),
+            AccountMeta(pubkey=PublicKey("11111111111111111111111111111111"), is_signer=False, is_writable=False), # System Program
+        ]
+
+        # Create the solathon Instruction object
+        instruction = Instruction(
+            program_id=PROGRAM_PUBKEY,
+            accounts=accounts,
+            data=full_instruction_data,
         )
 
         tx = Transaction()
@@ -130,14 +172,25 @@ class SolanaTransactionBuilder:
             PROGRAM_PUBKEY
         )
 
-        instruction = self.program.instruction.initialize_user(
-            ctx=Context(
-                accounts={
-                    "user_account": user_account_pda,
-                    "user": user_pubkey,
-                    "system_program": PublicKey("11111111111111111111111111111111"),
-                }
-            ),
+        # No arguments for initialize_user instruction
+        instruction_data = b''
+
+        # Instruction discriminator
+        discriminator = hashlib.sha256(b"global:initialize_user").digest()[:8]
+        full_instruction_data = discriminator + instruction_data
+
+        # Define the AccountMeta list
+        accounts = [
+            AccountMeta(pubkey=user_account_pda, is_signer=False, is_writable=True),
+            AccountMeta(pubkey=user_pubkey, is_signer=True, is_writable=False),
+            AccountMeta(pubkey=PublicKey("11111111111111111111111111111111"), is_signer=False, is_writable=False), # System Program
+        ]
+
+        # Create the solathon Instruction object
+        instruction = Instruction(
+            program_id=PROGRAM_PUBKEY,
+            accounts=accounts,
+            data=full_instruction_data,
         )
 
         tx = Transaction()
@@ -162,16 +215,32 @@ class SolanaTransactionBuilder:
             PROGRAM_PUBKEY
         )
 
-        instruction = self.program.instruction.purchase_tokens(
-            sol_amount,
-            ctx=Context(
-                accounts={
-                    "user_account": user_account_pda,
-                    "user": user_pubkey,
-                    "treasury": treasury_pda,
-                    "system_program": PublicKey("11111111111111111111111111111111"),
-                }
-            ),
+        # Define the Borsh schema for the instruction arguments
+        purchase_tokens_args = borsh.CStruct(
+            "amount" / borsh.U64,
+        )
+
+        # Serialize the instruction arguments
+        instruction_data = purchase_tokens_args.build({
+            "amount": sol_amount,
+        })
+
+        # Instruction discriminator
+        discriminator = hashlib.sha256(b"global:purchase_tokens").digest()[:8]
+        full_instruction_data = discriminator + instruction_data
+
+        # Define the AccountMeta list
+        accounts = [
+            AccountMeta(pubkey=user_account_pda, is_signer=False, is_writable=True),
+            AccountMeta(pubkey=user_pubkey, is_signer=True, is_writable=False),
+            AccountMeta(pubkey=PublicKey("11111111111111111111111111111111"), is_signer=False, is_writable=False), # System Program
+        ]
+
+        # Create the solathon Instruction object
+        instruction = Instruction(
+            program_id=PROGRAM_PUBKEY,
+            accounts=accounts,
+            data=full_instruction_data,
         )
 
         tx = Transaction()
@@ -197,15 +266,32 @@ class SolanaTransactionBuilder:
             PROGRAM_PUBKEY
         )
 
-        instruction = self.program.instruction.share_document(
-            new_access_level,
-            ctx=Context(
-                accounts={
-                    "user_account": user_account_pda,
-                    "document_record": document_record_pda,
-                    "user": user_pubkey,
-                }
-            ),
+        # Define the Borsh schema for the instruction arguments
+        share_document_args = borsh.CStruct(
+            "new_access_level" / borsh.U8,
+        )
+
+        # Serialize the instruction arguments
+        instruction_data = share_document_args.build({
+            "new_access_level": new_access_level,
+        })
+
+        # Instruction discriminator
+        discriminator = hashlib.sha256(b"global:share_document").digest()[:8]
+        full_instruction_data = discriminator + instruction_data
+
+        # Define the AccountMeta list
+        accounts = [
+            AccountMeta(pubkey=user_account_pda, is_signer=False, is_writable=True),
+            AccountMeta(pubkey=document_record_pda, is_signer=False, is_writable=True),
+            AccountMeta(pubkey=user_pubkey, is_signer=True, is_writable=False),
+        ]
+
+        # Create the solathon Instruction object
+        instruction = Instruction(
+            program_id=PROGRAM_PUBKEY,
+            accounts=accounts,
+            data=full_instruction_data,
         )
 
         tx = Transaction()
@@ -231,16 +317,35 @@ class SolanaTransactionBuilder:
             PROGRAM_PUBKEY
         )
 
-        instruction = self.program.instruction.generate_quiz(
-            document_hash, timestamp,
-            ctx=Context(
-                accounts={
-                    "user_account": user_account_pda,
-                    "quiz_record": quiz_record_pda,
-                    "user": user_pubkey,
-                    "system_program": PublicKey("11111111111111111111111111111111"),
-                }
-            ),
+        # Define the Borsh schema for the instruction arguments
+        generate_quiz_args = borsh.CStruct(
+            "document_hash" / borsh.String,
+            "timestamp" / borsh.U64,
+        )
+
+        # Serialize the instruction arguments
+        instruction_data = generate_quiz_args.build({
+            "document_hash": document_hash,
+            "timestamp": timestamp,
+        })
+
+        # Instruction discriminator
+        discriminator = hashlib.sha256(b"global:generate_quiz").digest()[:8]
+        full_instruction_data = discriminator + instruction_data
+
+        # Define the AccountMeta list
+        accounts = [
+            AccountMeta(pubkey=user_account_pda, is_signer=False, is_writable=True),
+            AccountMeta(pubkey=quiz_record_pda, is_signer=False, is_writable=True),
+            AccountMeta(pubkey=user_pubkey, is_signer=True, is_writable=False),
+            AccountMeta(pubkey=PublicKey("11111111111111111111111111111111"), is_signer=False, is_writable=False), # System Program
+        ]
+
+        # Create the solathon Instruction object
+        instruction = Instruction(
+            program_id=PROGRAM_PUBKEY,
+            accounts=accounts,
+            data=full_instruction_data,
         )
 
         tx = Transaction()
@@ -254,31 +359,42 @@ class SolanaTransactionBuilder:
         self,
         user_public_key: str,
         amount: int,
-        timestamp: int
     ) -> Tuple[Transaction, List[PublicKey]]:
         user_pubkey = PublicKey(user_public_key)
         user_account_pda, _ = PublicKey.find_program_address(
             [b"user", user_pubkey.to_bytes()],
             PROGRAM_PUBKEY
         )
-        stake_record_pda, _ = PublicKey.find_program_address(
-            [b"stake", user_pubkey.to_bytes(), timestamp.to_bytes(8, "little")],
-            PROGRAM_PUBKEY
+
+        # Define the Borsh schema for the instruction arguments
+        stake_tokens_args = borsh.CStruct(
+            "amount" / borsh.U64,
         )
 
-        instruction = self.program.instruction.stake_tokens(
-            amount, timestamp,
-            ctx=Context(
-                accounts={
-                    "user_account": user_account_pda,
-                    "stake_record": stake_record_pda,
-                    "user": user_pubkey,
-                    "system_program": PublicKey("11111111111111111111111111111111"),
-                }
-            ),
+        # Serialize the instruction arguments
+        instruction_data = stake_tokens_args.build({
+            "amount": amount,
+        })
+
+        # Instruction discriminator
+        discriminator = hashlib.sha256(b"global:stake_tokens").digest()[:8]
+        full_instruction_data = discriminator + instruction_data
+
+        # Define the AccountMeta list
+        accounts = [
+            AccountMeta(pubkey=user_account_pda, is_signer=False, is_writable=True),
+            AccountMeta(pubkey=user_pubkey, is_signer=True, is_writable=False),
+            AccountMeta(pubkey=PublicKey("11111111111111111111111111111111"), is_signer=False, is_writable=False), # System Program
+        ]
+
+        # Create the solathon Instruction object
+        instruction = Instruction(
+            program_id=PROGRAM_PUBKEY,
+            accounts=accounts,
+            data=full_instruction_data,
         )
 
-        tx = Transaction()
+        tx = Transaction() # type: ignore
         tx.fee_payer = user_pubkey
         tx.add(instruction)
         recent = await self.client.get_latest_blockhash()
@@ -288,29 +404,43 @@ class SolanaTransactionBuilder:
     async def build_unstake_tokens_transaction(
         self,
         user_public_key: str,
-        timestamp: int
+        amount: int,
     ) -> Tuple[Transaction, List[PublicKey]]:
         user_pubkey = PublicKey(user_public_key)
         user_account_pda, _ = PublicKey.find_program_address(
             [b"user", user_pubkey.to_bytes()],
             PROGRAM_PUBKEY
         )
-        stake_record_pda, _ = PublicKey.find_program_address(
-            [b"stake", user_pubkey.to_bytes(), timestamp.to_bytes(8, "little")],
-            PROGRAM_PUBKEY
+
+        # Define the Borsh schema for the instruction arguments
+        unstake_tokens_args = borsh.CStruct(
+            "amount" / borsh.U64,
         )
 
-        instruction = self.program.instruction.unstake_tokens(
-            ctx=Context(
-                accounts={
-                    "user_account": user_account_pda,
-                    "stake_record": stake_record_pda,
-                    "user": user_pubkey,
-                }
-            ),
+        # Serialize the instruction arguments
+        instruction_data = unstake_tokens_args.build({
+            "amount": amount,
+        })
+
+        # Instruction discriminator
+        discriminator = hashlib.sha256(b"global:unstake_tokens").digest()[:8]
+        full_instruction_data = discriminator + instruction_data
+
+        # Define the AccountMeta list
+        accounts = [
+            AccountMeta(pubkey=user_account_pda, is_signer=False, is_writable=True),
+            AccountMeta(pubkey=user_pubkey, is_signer=True, is_writable=False),
+            AccountMeta(pubkey=PublicKey("11111111111111111111111111111111"), is_signer=False, is_writable=False), # System Program
+        ]
+
+        # Create the solathon Instruction object
+        instruction = Instruction(
+            program_id=PROGRAM_PUBKEY,
+            accounts=accounts,
+            data=full_instruction_data,
         )
 
-        tx = Transaction()
+        tx = Transaction() # type: ignore
         tx.fee_payer = user_pubkey
         tx.add(instruction)
         recent = await self.client.get_latest_blockhash()
@@ -319,9 +449,9 @@ class SolanaTransactionBuilder:
 
 
 class SolanaTransactionVerifier:
-    def __init__(self, program: Program, client: AsyncClient):
-        self.program = program
+    def __init__(self, client: Client, idl: dict):
         self.client = client
+        self.idl = idl
 
     async def verify_transaction_with_retry(
         self,
@@ -346,71 +476,72 @@ class SolanaTransactionVerifier:
         expected_instruction: str,
         expected_data: dict
     ) -> bool:
-        resp = await self.client.get_transaction(
+        transaction_response = await self.client.get_transaction(
             tx_signature,
-            commitment=Commitment("confirmed"),
-            max_supported_transaction_version=0
+            commitment=Commitment.CONFIRMED,
+            max_supported_transaction_version=0,
         )
-        if not resp.value or (resp.value.meta and resp.value.meta.err):
+        if not transaction_response.value or (transaction_response.value.meta and transaction_response.value.meta.err):
             return False
 
-        message = resp.value.transaction.message
-        program_instruction = None
+        message = transaction_response.value.transaction.message
+        
+        # Find the instruction for our program
+        program_instruction_data = None
         for instr in message.instructions:
             pid = message.account_keys[instr.program_id_index]
-            if str(pid) == str(PROGRAM_PUBKEY):
-                program_instruction = instr
+            if pid == PROGRAM_PUBKEY:
+                program_instruction_data = instr.data
                 break
-        if not program_instruction:
+
+        if not program_instruction_data:
             return False
 
-        data = base58.b58decode(program_instruction.data)
-        coder = AnchorInstructionCoder(self.program.idl)
-        try:
-            decoded = coder.decode(data)
-        except:
-            return False
-        if not decoded or decoded.name != expected_instruction:
+        # Extract discriminator and instruction arguments
+        discriminator_bytes = program_instruction_data[:8]
+        instruction_args_bytes = program_instruction_data[8:]
+
+        # Find the instruction in the IDL by its discriminator
+        found_instruction = None
+        for instruction_idl in self.idl["instructions"]:
+            # Calculate discriminator for each instruction in IDL
+            instruction_discriminator = hashlib.sha256(f"global:{instruction_idl['name']}".encode()).digest()[:8]
+            if instruction_discriminator == discriminator_bytes:
+                found_instruction = instruction_idl
+                break
+
+        if not found_instruction or found_instruction["name"] != expected_instruction:
             return False
 
-        return self._verify_instruction_data(decoded.data, expected_data, expected_instruction)
+        # Dynamically create Borsh schema for instruction arguments
+        instruction_schema_fields = []
+        for arg in found_instruction["args"]:
+            # Basic type mapping for now. More complex types (e.g., Vec, Option) would need more logic.
+            if arg["type"] == "string":
+                instruction_schema_fields.append(arg["name"] / borsh.String)
+            elif arg["type"] == "u8":
+                instruction_schema_fields.append(arg["name"] / borsh.U8)
+            elif arg["type"] == "u64":
+                instruction_schema_fields.append(arg["name"] / borsh.U64)
+            elif arg["type"] == {"vec": "u8"}: # Assuming PublicKey is Vec<u8> of length 32
+                instruction_schema_fields.append(arg["name"] / borsh.Bytes(32))
+            # Add more type mappings as needed
 
-    def _verify_instruction_data(self, actual: dict, expected: dict, name: str) -> bool:
-        if name == "upload_document":
-            return (
-                actual.get("pdf_hash") == expected.get("pdf_hash")
-                and actual.get("access_level") == expected.get("access_level")
-                and actual.get("document_index") == expected.get("document_index")
-            )
-        if name == "chat_query":
-            return (
-                actual.get("query_text") == expected.get("query_text")
-                and actual.get("query_index") == expected.get("query_index")
-            )
-        if name == "initialize_user":
-            return True
-        if name == "purchase_tokens":
-            return actual.get("sol_amount") == expected.get("sol_amount")
-        if name == "share_document":
-            return actual.get("new_access_level") == expected.get("new_access_level")
-        if name == "generate_quiz":
-            return (
-                actual.get("document_hash") == expected.get("document_hash")
-                and actual.get("timestamp") == expected.get("timestamp")
-            )
-        if name == "stake_tokens":
-            return (
-                actual.get("amount") == expected.get("amount")
-                and actual.get("timestamp") == expected.get("timestamp")
-            )
-        if name == "unstake_tokens":
-            return True
-        return False
+        instruction_schema = borsh.CStruct(*instruction_schema_fields)
+
+        # Deserialize the instruction arguments
+        decoded_args = instruction_schema.parse(instruction_args_bytes)
+
+        # Verify instruction data
+        for key, value in expected_data.items():
+            if key not in decoded_args or decoded_args[key] != value:
+                return False
+        return True
 
 
 # Instantiate builder & verifier
-transaction_builder = SolanaTransactionBuilder(program, shared_solana_client)
-transaction_verifier = SolanaTransactionVerifier(program, shared_solana_client)
+transaction_builder = SolanaTransactionBuilder(shared_solana_client)
+transaction_verifier = SolanaTransactionVerifier(shared_solana_client, idl)
 
 
 @app.on_event("shutdown")
