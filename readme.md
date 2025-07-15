@@ -199,4 +199,4 @@ Curious about Socratic? Here are some Socratic-style questions to guide your exp
 - What are the implications of tokenizing document uploads for user incentives?
 - How can we enhance Socratic to further foster collaborative learning?
 
-Reach out via [GitHub Issues](https://github.com/yourusername/socratic/issues) or join our community discussion on X!
+Reach out @ nsaquib22@gmail.com
