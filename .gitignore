@@ -12,7 +12,7 @@ backend/env
 /android/.gradle/
 /android/build/
 .env
-__pycache__/
+backend/__pycache__/
 
 # CNG/Prebuild - ignore native folders
 /ios
