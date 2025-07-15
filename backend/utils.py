@@ -3,8 +3,9 @@ import re
 import uuid as uuid_lib
 import hashlib
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, Tuple
 from tempfile import NamedTemporaryFile
+from langchain_openai import ChatOpenAI
 
 import fitz
 import pandas as pd
@@ -161,3 +162,103 @@ def estimate_time_for_processing(chunk_count: int) -> str:
         hours = estimate_seconds // 3600
         minutes = (estimate_seconds % 3600) // 60
         return f"{hours}h {minutes}m"
+
+
+def get_summary_and_questions(text: str) -> Tuple[str, List[str], float]:
+    """
+    Generate a summary and Socratic questions for a given text chunk.
+    Returns a tuple of (summary, questions_list, confidence_score)
+    """
+    try:
+        # Limit text length to avoid token limits
+        text_snippet = text[:2000] if len(text) > 2000 else text
+
+        prompt = (
+            f"Analyze this text and provide:\n\n"
+            f"Text: {text_snippet}\n\n"
+            f"Format your response exactly as follows:\n"
+            f"SUMMARY: [One clear sentence summarizing the main point]\n"
+            f"QUESTION 1: [First Socratic question]\n"
+            f"QUESTION 2: [Second Socratic question]\n"
+            f"QUESTION 3: [Third Socratic question (optional)]\n\n"
+            f"Make the questions thought-provoking and open-ended to encourage deeper thinking."
+        )
+
+        llm = ChatOpenAI(
+            model="mistralai/Mistral-7B-Instruct-v0.2",
+            temperature=0.7,
+            api_key=os.getenv("OPENAI_API_KEY"),
+            base_url=os.getenv("OPENAI_API_BASE"),
+            timeout=30,  # Add timeout to prevent hanging
+        )
+
+        response = llm.invoke(prompt).content.strip()
+
+        # Parse the structured response
+        summary = ""
+        questions = []
+        confidence = 0.8
+
+        lines = response.split("\n")
+        for line in lines:
+            line = line.strip()
+            if line.startswith("SUMMARY:"):
+                summary = line.replace("SUMMARY:", "").strip()
+            elif line.startswith("QUESTION"):
+                question_text = line.split(":", 1)[-1].strip()
+                if (
+                    question_text
+                    and not question_text.startswith("[")
+                    and not question_text.endswith("]")
+                ):
+                    questions.append(question_text)
+
+        # Fallback parsing if structured format wasn't followed
+        if not summary or not questions:
+            response_lines = [
+                line.strip() for line in response.split("\n") if line.strip()
+            ]
+            if response_lines:
+                summary = summary or response_lines[0]
+                # Extract questions from remaining lines
+                for line in response_lines[1:]:
+                    if (
+                        "?" in line
+                        and len(line) > 10
+                        and not line.lower().startswith("summary")
+                        and not line.startswith("QUESTION")
+                    ):
+                        clean_question = line.strip("- •").strip()
+                        if clean_question:
+                            questions.append(clean_question)
+
+        # Ensure we have reasonable output
+        if not summary:
+            summary = f"This text discusses {text_snippet[:100]}..."
+            confidence = 0.3
+
+        if not questions:
+            questions = [
+                "What are the key implications of this content?",
+                "How might this information be applied in practice?",
+                "What questions does this text raise for further exploration?",
+            ]
+            confidence = min(confidence, 0.4)
+
+        # Limit to 3 questions max
+        questions = questions[:3]
+
+        return summary, questions, confidence
+
+    except Exception as e:
+        print(f"Error in get_summary_and_questions: {e}")
+        # Return fallback values
+        fallback_summary = f"Analysis of text content ({len(text)} characters)"
+        fallback_questions = [
+            "What are the main concepts presented in this text?",
+            "How does this information relate to broader themes?",
+            "What implications or applications can be drawn from this content?",
+        ]
+        return fallback_summary, fallback_questions, 0.2
+
+
