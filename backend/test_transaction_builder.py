@@ -1,14 +1,13 @@
 import pytest
 import hashlib
-
 import borsh_construct as borsh
 from solathon import PublicKey
 
-from your_module import SolanaTransactionBuilder, PROGRAM_PUBKEY
+from solana_utils import SolanaTransactionBuilder, PROGRAM_PUBKEY
 
 # Dummy constants for tests
 TEST_BLOCKHASH = "TEST_BLOCKHASH"
-DUMMY_PDA = PublicKey("PDA11111111111111111111111111111111111")
+DUMMY_PDA = PublicKey("11111111111111111111111111111111111111111111")
 SYSTEM_PROGRAM = PublicKey("11111111111111111111111111111111111")
 USER_KEY = "User11111111111111111111111111111111111"
 
