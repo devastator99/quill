@@ -45,7 +45,7 @@ Socratic combines a powerful backend with a decentralized blockchain layer:
 - **Frontend (React Native)**: Sends parameters and data to the FastAPI backend, signs transactions using a Solana wallet adapter, and displays results.
 - **Backend (FastAPI)**:
   - Constructs unsigned Solana transactions for actions like document uploads and queries.
-  - Verifies transaction signatures using Anchorpy and Solana’s RPC.
+  - Verifies transaction signatures using Anchorpy , Solathon and Solana’s RPC.
   - Processes documents with LangChain for text extraction, chunking, and embedding generation.
   - Stores metadata and embeddings in PostgreSQL with PGVector.
   - Uses Celery for asynchronous task processing (e.g., generating summaries and questions).
@@ -85,6 +85,9 @@ Socratic combines a powerful backend with a decentralized blockchain layer:
 2. **Set Up the Backend:**
 
    ```bash
+   #change directory to backend
+   cd backend
+   # activate your virtual env(optional)
    # Install Python dependencies
    pip install -r requirements.txt
    # Set up environment variables
