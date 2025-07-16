@@ -6,22 +6,23 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 from sqlalchemy.orm import Session
-from solana.publickey import PublicKey
-from solana.transaction import Transaction
+from solathon import PublicKey
+from solathon import Transaction
 import nacl.signing
 import base58
 import asyncio
 
-from main import router, WebSocketManager, get_summary_and_questions
+from main import router
+from endpoints import WebSocketManager
+from utils import get_summary_and_questions
 from schema import (
     LoginData,
     UploadDocBlockchainRequest,
     PurchaseTokensBlockchainRequest,
     ShareDocumentBlockchainRequest,
-    ChatQueryBlockchainRequest,
-    PdfUploads,
-    TempChunks,
+    ChatQueryBlockchainRequest
 )
+from models import PdfUploads, TempChunks
 from database import get_db
 
 # Mock database dependency
