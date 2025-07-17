@@ -15,7 +15,12 @@ from solathon import Client, Transaction, PublicKey
 from solathon.core.instructions import Instruction, AccountMeta
 from solathon.core.types import Commitment
 
-from solana_utils import SolanaTransactionBuilder, SolanaTransactionVerifier, PROGRAM_PUBKEY
+from solana_utils import (
+    SolanaTransactionBuilder,
+    SolanaTransactionVerifier,
+    PROGRAM_PUBKEY,
+)
+
 
 
 # Mock classes for transaction response simulation
@@ -70,56 +75,36 @@ def sample_idl():
     """Sample IDL for testing"""
     return {
         "instructions": [
-            {
-                "name": "initialize_user",
-                "args": []
-            },
+            {"name": "initialize_user", "args": []},
             {
                 "name": "upload_document",
                 "args": [
                     {"name": "pdf_hash", "type": "string"},
                     {"name": "access_level", "type": "u8"},
-                    {"name": "document_index", "type": "u64"}
-                ]
+                    {"name": "document_index", "type": "u64"},
+                ],
             },
             {
                 "name": "chat_query",
                 "args": [
                     {"name": "query_text", "type": "string"},
-                    {"name": "query_index", "type": "u64"}
-                ]
+                    {"name": "query_index", "type": "u64"},
+                ],
             },
-            {
-                "name": "purchase_tokens",
-                "args": [
-                    {"name": "amount", "type": "u64"}
-                ]
-            },
+            {"name": "purchase_tokens", "args": [{"name": "amount", "type": "u64"}]},
             {
                 "name": "share_document",
-                "args": [
-                    {"name": "new_access_level", "type": "u8"}
-                ]
+                "args": [{"name": "new_access_level", "type": "u8"}],
             },
             {
                 "name": "generate_quiz",
                 "args": [
                     {"name": "document_hash", "type": "string"},
-                    {"name": "timestamp", "type": "u64"}
-                ]
+                    {"name": "timestamp", "type": "u64"},
+                ],
             },
-            {
-                "name": "stake_tokens",
-                "args": [
-                    {"name": "amount", "type": "u64"}
-                ]
-            },
-            {
-                "name": "unstake_tokens",
-                "args": [
-                    {"name": "amount", "type": "u64"}
-                ]
-            }
+            {"name": "stake_tokens", "args": [{"name": "amount", "type": "u64"}]},
+            {"name": "unstake_tokens", "args": [{"name": "amount", "type": "u64"}]},
         ]
     }
 
@@ -162,7 +147,9 @@ class TestSolanaTransactionBuilder:
         # Verify instruction structure
         instruction = tx.instructions[0]
         assert instruction.program_id == PROGRAM_PUBKEY
-        assert len(instruction.accounts) == 4  # user_account_pda, document_record_pda, user, system_program
+        assert (
+            len(instruction.accounts) == 4
+        )  # user_account_pda, document_record_pda, user, system_program
 
         # Verify instruction data contains discriminator
         expected_discriminator = hashlib.sha256(b"global:upload_document").digest()[:8]
@@ -200,7 +187,9 @@ class TestSolanaTransactionBuilder:
         """Test building initialize user transaction"""
         user_public_key = "11111111111111111111111111111111"
 
-        tx, signers = await transaction_builder.build_initialize_user_transaction(user_public_key)
+        tx, signers = await transaction_builder.build_initialize_user_transaction(
+            user_public_key
+        )
 
         # Verify transaction structure
         assert isinstance(tx, Transaction)
@@ -263,7 +252,9 @@ class TestSolanaTransactionBuilder:
         # Verify instruction structure
         instruction = tx.instructions[0]
         assert instruction.program_id == PROGRAM_PUBKEY
-        assert len(instruction.accounts) == 3  # user_account_pda, document_record_pda, user
+        assert (
+            len(instruction.accounts) == 3
+        )  # user_account_pda, document_record_pda, user
 
         # Verify instruction data contains discriminator
         expected_discriminator = hashlib.sha256(b"global:share_document").digest()[:8]
@@ -360,9 +351,11 @@ class TestSolanaTransactionVerifier:
         """Test successful verification of initialize_user transaction"""
         # Build expected discriminator
         discriminator = hashlib.sha256(b"global:initialize_user").digest()[:8]
-        
+
         # Mock get_transaction response
-        async def mock_get_transaction(sig, commitment, max_supported_transaction_version):
+        async def mock_get_transaction(
+            sig, commitment, max_supported_transaction_version
+        ):
             instruction = MockInstruction(0, discriminator)
             message = MockMessage([PROGRAM_PUBKEY], [instruction])
             transaction = MockTransaction(message)
@@ -375,9 +368,9 @@ class TestSolanaTransactionVerifier:
             tx_signature="fake_signature",
             expected_instruction="initialize_user",
             expected_data={},
-            max_retries=1
+            max_retries=1,
         )
-        
+
         assert result is True
 
     @pytest.mark.asyncio
@@ -393,7 +386,9 @@ class TestSolanaTransactionVerifier:
         instruction_data = discriminator + payload
 
         # Mock get_transaction response
-        async def mock_get_transaction(sig, commitment, max_supported_transaction_version):
+        async def mock_get_transaction(
+            sig, commitment, max_supported_transaction_version
+        ):
             instruction = MockInstruction(0, instruction_data)
             message = MockMessage([PROGRAM_PUBKEY], [instruction])
             transaction = MockTransaction(message)
@@ -406,9 +401,9 @@ class TestSolanaTransactionVerifier:
             tx_signature="fake_signature",
             expected_instruction="chat_query",
             expected_data={"query_text": query_text, "query_index": query_index},
-            max_retries=1
+            max_retries=1,
         )
-        
+
         assert result is True
 
     @pytest.mark.asyncio
@@ -422,18 +417,22 @@ class TestSolanaTransactionVerifier:
         schema = borsh.CStruct(
             "pdf_hash" / borsh.String,
             "access_level" / borsh.U8,
-            "document_index" / borsh.U64
+            "document_index" / borsh.U64,
         )
-        payload = schema.build({
-            "pdf_hash": pdf_hash,
-            "access_level": access_level,
-            "document_index": document_index
-        })
+        payload = schema.build(
+            {
+                "pdf_hash": pdf_hash,
+                "access_level": access_level,
+                "document_index": document_index,
+            }
+        )
         discriminator = hashlib.sha256(b"global:upload_document").digest()[:8]
         instruction_data = discriminator + payload
 
         # Mock get_transaction response
-        async def mock_get_transaction(sig, commitment, max_supported_transaction_version):
+        async def mock_get_transaction(
+            sig, commitment, max_supported_transaction_version
+        ):
             instruction = MockInstruction(0, instruction_data)
             message = MockMessage([PROGRAM_PUBKEY], [instruction])
             transaction = MockTransaction(message)
@@ -448,18 +447,21 @@ class TestSolanaTransactionVerifier:
             expected_data={
                 "pdf_hash": pdf_hash,
                 "access_level": access_level,
-                "document_index": document_index
+                "document_index": document_index,
             },
-            max_retries=1
+            max_retries=1,
         )
-        
+
         assert result is True
 
     @pytest.mark.asyncio
     async def test_verify_transaction_failed_transaction(self, transaction_verifier):
         """Test verification of failed transaction"""
+
         # Mock get_transaction response with error
-        async def mock_get_transaction(sig, commitment, max_supported_transaction_version):
+        async def mock_get_transaction(
+            sig, commitment, max_supported_transaction_version
+        ):
             meta = MockMeta(err="Transaction failed")
             return MockTransactionResponse(MockTransactionValue(None, meta))
 
@@ -469,19 +471,23 @@ class TestSolanaTransactionVerifier:
             tx_signature="fake_signature",
             expected_instruction="initialize_user",
             expected_data={},
-            max_retries=1
+            max_retries=1,
         )
-        
+
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_verify_transaction_no_program_instruction(self, transaction_verifier):
+    async def test_verify_transaction_no_program_instruction(
+        self, transaction_verifier
+    ):
         """Test verification when no instruction for our program is found"""
         other_program = PublicKey("22222222222222222222222222222222")
         discriminator = hashlib.sha256(b"global:initialize_user").digest()[:8]
 
         # Mock get_transaction response with different program
-        async def mock_get_transaction(sig, commitment, max_supported_transaction_version):
+        async def mock_get_transaction(
+            sig, commitment, max_supported_transaction_version
+        ):
             instruction = MockInstruction(0, discriminator)
             message = MockMessage([other_program], [instruction])
             transaction = MockTransaction(message)
@@ -494,9 +500,9 @@ class TestSolanaTransactionVerifier:
             tx_signature="fake_signature",
             expected_instruction="initialize_user",
             expected_data={},
-            max_retries=1
+            max_retries=1,
         )
-        
+
         assert result is False
 
     @pytest.mark.asyncio
@@ -506,7 +512,9 @@ class TestSolanaTransactionVerifier:
         discriminator = hashlib.sha256(b"global:chat_query").digest()[:8]
 
         # Mock get_transaction response
-        async def mock_get_transaction(sig, commitment, max_supported_transaction_version):
+        async def mock_get_transaction(
+            sig, commitment, max_supported_transaction_version
+        ):
             instruction = MockInstruction(0, discriminator)
             message = MockMessage([PROGRAM_PUBKEY], [instruction])
             transaction = MockTransaction(message)
@@ -519,9 +527,9 @@ class TestSolanaTransactionVerifier:
             tx_signature="fake_signature",
             expected_instruction="initialize_user",  # Expecting different instruction
             expected_data={},
-            max_retries=1
+            max_retries=1,
         )
-        
+
         assert result is False
 
     @pytest.mark.asyncio
@@ -537,7 +545,9 @@ class TestSolanaTransactionVerifier:
         instruction_data = discriminator + payload
 
         # Mock get_transaction response
-        async def mock_get_transaction(sig, commitment, max_supported_transaction_version):
+        async def mock_get_transaction(
+            sig, commitment, max_supported_transaction_version
+        ):
             instruction = MockInstruction(0, instruction_data)
             message = MockMessage([PROGRAM_PUBKEY], [instruction])
             transaction = MockTransaction(message)
@@ -549,25 +559,32 @@ class TestSolanaTransactionVerifier:
         result = await transaction_verifier.verify_transaction_with_retry(
             tx_signature="fake_signature",
             expected_instruction="chat_query",
-            expected_data={"query_text": "different query", "query_index": 99},  # Different data
-            max_retries=1
+            expected_data={
+                "query_text": "different query",
+                "query_index": 99,
+            },  # Different data
+            max_retries=1,
         )
-        
+
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_verify_transaction_with_retry_eventually_succeeds(self, transaction_verifier):
+    async def test_verify_transaction_with_retry_eventually_succeeds(
+        self, transaction_verifier
+    ):
         """Test that retry mechanism eventually succeeds"""
         discriminator = hashlib.sha256(b"global:initialize_user").digest()[:8]
         call_count = 0
 
-        async def mock_get_transaction(sig, commitment, max_supported_transaction_version):
+        async def mock_get_transaction(
+            sig, commitment, max_supported_transaction_version
+        ):
             nonlocal call_count
             call_count += 1
-            
+
             if call_count < 3:  # Fail first 2 attempts
                 raise Exception("Network error")
-            
+
             # Succeed on 3rd attempt
             instruction = MockInstruction(0, discriminator)
             message = MockMessage([PROGRAM_PUBKEY], [instruction])
@@ -581,16 +598,21 @@ class TestSolanaTransactionVerifier:
             tx_signature="fake_signature",
             expected_instruction="initialize_user",
             expected_data={},
-            max_retries=3
+            max_retries=3,
         )
-        
+
         assert result is True
         assert call_count == 3
 
     @pytest.mark.asyncio
-    async def test_verify_transaction_with_retry_max_retries_exceeded(self, transaction_verifier):
+    async def test_verify_transaction_with_retry_max_retries_exceeded(
+        self, transaction_verifier
+    ):
         """Test that retry mechanism fails after max retries"""
-        async def mock_get_transaction(sig, commitment, max_supported_transaction_version):
+
+        async def mock_get_transaction(
+            sig, commitment, max_supported_transaction_version
+        ):
             raise Exception("Persistent network error")
 
         transaction_verifier.client.get_transaction = mock_get_transaction
@@ -599,9 +621,9 @@ class TestSolanaTransactionVerifier:
             tx_signature="fake_signature",
             expected_instruction="initialize_user",
             expected_data={},
-            max_retries=2
+            max_retries=2,
         )
-        
+
         assert result is False
 
     @pytest.mark.asyncio
@@ -616,7 +638,9 @@ class TestSolanaTransactionVerifier:
         instruction_data = discriminator + payload
 
         # Mock get_transaction response
-        async def mock_get_transaction(sig, commitment, max_supported_transaction_version):
+        async def mock_get_transaction(
+            sig, commitment, max_supported_transaction_version
+        ):
             instruction = MockInstruction(0, instruction_data)
             message = MockMessage([PROGRAM_PUBKEY], [instruction])
             transaction = MockTransaction(message)
@@ -629,9 +653,9 @@ class TestSolanaTransactionVerifier:
             tx_signature="fake_signature",
             expected_instruction="purchase_tokens",
             expected_data={"amount": amount},
-            max_retries=1
+            max_retries=1,
         )
-        
+
         assert result is True
 
 
@@ -643,18 +667,20 @@ class TestIntegration:
         """Test building and then verifying an initialize_user transaction"""
         builder = SolanaTransactionBuilder(mock_client)
         verifier = SolanaTransactionVerifier(mock_client, sample_idl)
-        
+
         user_public_key = "11111111111111111111111111111111"
-        
+
         # Build transaction
         tx, signers = await builder.build_initialize_user_transaction(user_public_key)
-        
+
         # Extract instruction data from built transaction
         instruction = tx.instructions[0]
         instruction_data = instruction.data
-        
+
         # Mock get_transaction to return the built instruction
-        async def mock_get_transaction(sig, commitment, max_supported_transaction_version):
+        async def mock_get_transaction(
+            sig, commitment, max_supported_transaction_version
+        ):
             mock_instruction = MockInstruction(0, instruction_data)
             message = MockMessage([PROGRAM_PUBKEY], [mock_instruction])
             transaction = MockTransaction(message)
@@ -668,9 +694,9 @@ class TestIntegration:
             tx_signature="fake_signature",
             expected_instruction="initialize_user",
             expected_data={},
-            max_retries=1
+            max_retries=1,
         )
-        
+
         assert result is True
 
     @pytest.mark.asyncio
@@ -678,22 +704,24 @@ class TestIntegration:
         """Test building and then verifying a chat_query transaction"""
         builder = SolanaTransactionBuilder(mock_client)
         verifier = SolanaTransactionVerifier(mock_client, sample_idl)
-        
+
         user_public_key = "11111111111111111111111111111111"
         query_text = "What is this about?"
         query_index = 5
-        
+
         # Build transaction
         tx, signers = await builder.build_chat_query_transaction(
             user_public_key, query_text, query_index
         )
-        
+
         # Extract instruction data from built transaction
         instruction = tx.instructions[0]
         instruction_data = instruction.data
-        
+
         # Mock get_transaction to return the built instruction
-        async def mock_get_transaction(sig, commitment, max_supported_transaction_version):
+        async def mock_get_transaction(
+            sig, commitment, max_supported_transaction_version
+        ):
             mock_instruction = MockInstruction(0, instruction_data)
             message = MockMessage([PROGRAM_PUBKEY], [mock_instruction])
             transaction = MockTransaction(message)
@@ -707,9 +735,9 @@ class TestIntegration:
             tx_signature="fake_signature",
             expected_instruction="chat_query",
             expected_data={"query_text": query_text, "query_index": query_index},
-            max_retries=1
+            max_retries=1,
         )
-        
+
         assert result is True
 
 
