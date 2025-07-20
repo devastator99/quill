@@ -1,0 +1,28 @@
+# Build directories
+dist/
+.expo/
+node_modules/
+
+# Generated files
+metro.config.js
+*.d.ts
+
+# Backend
+backend/
+
+# Templates
+next-app-template/
+
+# Solana
+socratic_token/
+
+# Temporary files
+temp_code/
+
+# Cache
+.DS_Store
+*.pyc
+__pycache__/
+
+# Log files
+*.log
