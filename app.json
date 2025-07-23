@@ -45,7 +45,8 @@
       "router": {},
       "eas": {
         "projectId": "c36693e8-fb14-4366-98b2-c68af64a8af2"
-      }
+      },
+      "amplitudeApiKey": "AMPLITUDE_API_KEY_HERE"
     }
   }
 }
