@@ -1,4 +1,3 @@
-import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { colors, typography, spacing } from '@/styles/theme';
 
@@ -12,6 +11,7 @@ export default function SuggestedPrompt({ prompt, onPress }: SuggestedPromptProp
     <TouchableOpacity 
       style={styles.container} 
       onPress={() => onPress(prompt)}
+
     >
       <Text style={styles.text}>{prompt}</Text>
     </TouchableOpacity>

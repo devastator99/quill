@@ -5,17 +5,23 @@ node_modules/
 expo-env.d.ts
 # @end expo-cli
 
+# Environment variables
+.env
 backend/.env
 backend/env
-# Native folders for non-CNG projects
-/android/app/build/
-/android/.gradle/
-/android/build/
-/android
-/ios
-/ios
-.env
 
-# CNG/Prebuild - ignore native folders
+# Native folders
 /android
 /ios
+
+# Expo cache
+.expo/
+
+# Logs
+*.log
+
+# Temporary files
+temp.json
+
+# macOS
+.DS_Store
