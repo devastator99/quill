@@ -5,7 +5,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-16.x%2B-green.svg)](https://nodejs.org/)
 
 ## 🚀 Project Overview
-Quill is a powerful, full-stack document management and chat platform that combines the best of modern web and mobile technologies. Built with a React Native (Expo) frontend and a robust Python backend, Quill offers seamless document handling, real-time chat, and secure user authentication across all devices.
+Quill is a powerful, full-stack document management and chat platform that combines the best of modern web and mobile technologies. Built with a React Native (Expo) frontend and a robust Python backend with Solana integration, Quill offers seamless document handling, real-time chat, and secure user authentication across all devices.
 
 ### 🌟 Key Features
 - **Secure Authentication**
