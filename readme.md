@@ -1,159 +1,203 @@
-# Quill
+# 📚 Quill - Modern Document Management & Chat Platform
 
-## Project Overview
-Quill is a robust full-stack application designed for seamless reading and communication experiences. It features a modern React Native (Expo) frontend, a Python backend, and native Android support. Quill enables users to authenticate, onboard, chat, manage books, and more, all within a responsive, mobile-first interface.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-16.x%2B-green.svg)](https://nodejs.org/)
 
----
+## 🚀 Project Overview
+Quill is a powerful, full-stack document management and chat platform that combines the best of modern web and mobile technologies. Built with a React Native (Expo) frontend and a robust Python backend, Quill offers seamless document handling, real-time chat, and secure user authentication across all devices.
 
-## Table of Contents
-- [Features](#features)
-- [Project Structure](#project-structure)
-- [Prerequisites](#prerequisites)
-- [Setup](#setup)
-  - [Frontend (Expo)](#frontend-expo)
-  - [Backend (Python)](#backend-python)
-  - [Android](#android)
-- [Environment Variables](#environment-variables)
-- [Usage](#usage)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [License](#license)
-- [Links](#links)
+### 🌟 Key Features
+- **Secure Authentication**
+  - Email/Password & OTP verification
+  - Secure password reset flow
+  - JWT-based session management
 
----
+- **Document Management**
+  - Upload and organize documents
+  - Real-time previews
+  - Intelligent document processing
+  - Version control
 
-## Features
-- User authentication (login, signup, OTP verification, password reset)
-- Onboarding flow for new users
-- Real-time chat functionality
-- Book management: view, upload, preview, organize
-- User profile, customizable settings, notifications, help
-- Responsive UI for mobile and Android
-- Modular backend for easy extension
+- **AI-Powered Chat**
+  - Real-time messaging
+  - Document context awareness
+  - Smart search within conversations
 
----
+- **Cross-Platform**
+  - iOS and Android support via React Native
+  - Responsive web interface
+  - Offline capabilities
 
-## Project Structure
+## 🏗 Project Structure
+
 ```
 quill/
-├── backend/         # Python backend (API, models, logic)
-├── node_modules/    # Frontend dependencies
-├── android/         # Android native project files
-├── assets/          # Images, fonts, etc.
-├── App.js           # Expo entry point
-├── package.json     # Frontend dependencies/config
-├── tsconfig.json    # TypeScript config
-├── README.md        # Project documentation
-└── ...
+├── backend/                 # Python FastAPI backend
+│   ├── app/                 # Application code
+│   │   ├── api/             # API endpoints
+│   │   ├── core/            # Core functionality
+│   │   ├── models/          # Database models
+│   │   └── services/        # Business logic
+│   ├── tests/               # Backend tests
+│   └── requirements.txt     # Python dependencies
+│
+├── frontend/                # React Native (Expo) app
+│   ├── assets/              # Static assets
+│   ├── components/          # Reusable components
+│   ├── navigation/          # App navigation
+│   ├── screens/             # App screens
+│   └── App.tsx              # Entry point
+│
+├── android/                 # Android native code
+├── ios/                     # iOS native code (if applicable)
+└── docs/                    # Documentation
 ```
 
----
+## 🛠 Prerequisites
 
-## Prerequisites
-- Node.js (>= 16.x)
-- npm or yarn
+### For Development
+- Node.js 16.x or higher
 - Python 3.8+
-- pip
+- npm (v7+) or yarn
 - Expo CLI (`npm install -g expo-cli`)
-- (For Android) Android Studio or Expo Go app
+- Git
 
----
+### For Mobile Development (Optional)
+- Android Studio (for Android)
+- Xcode (for iOS, macOS only)
+- Android SDK & NDK
 
-## Setup
+## 🚀 Getting Started
 
-### Frontend (Expo)
-1. Install dependencies:
-   ```bash
-   npm install
-   # or
-   yarn install
-   ```
-2. Start the Expo development server:
-   ```bash
-   npx expo start
-   ```
-3. (Optional) For TypeScript support, ensure `tsconfig.json` is configured properly.
+### 1. Clone the Repository
+```bash
+git clone https://github.com/yourusername/quill.git
+cd quill
+```
 
-### Backend (Python)
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-2. (Recommended) Create and activate a virtual environment:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Start the backend server:
-   ```bash
-   python main.py
-   ```
+### 2. Set Up Backend
+```bash
+# Navigate to backend directory
+cd backend
 
-### Android
-- To run on Android, use Expo Go or build a native APK via EAS or Android Studio.
-- Place your debug keystore in `android/app/debug.keystore` (do not commit this file).
-- For custom builds, follow the [Expo EAS Build docs](https://docs.expo.dev/build/introduction/).
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: .\venv\Scripts\activate
 
----
+# Install dependencies
+pip install -r requirements.txt
 
-## Environment Variables
-- Create a `.env` file in the root and/or backend directory as needed.
-- Example variables:
-  - `API_URL` (frontend)
-  - `SECRET_KEY`, `DATABASE_URL` (backend)
-- **Do not commit `.env` files.**
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your configuration
 
----
+# Run database migrations
+alembic upgrade head
 
-## Usage
-- Access the app via Expo Go or a simulator/emulator.
-- The backend API runs on the specified port (default: 8000).
-- Update environment variables as needed in `.env` files.
-- For production, consider deploying the backend using a WSGI server (e.g., Gunicorn) and configure environment variables securely.
+# Start the development server
+uvicorn app.main:app --reload
+```
 
----
+### 3. Set Up Frontend
+```bash
+# Navigate to frontend directory
+cd ../frontend
 
-## Troubleshooting
-- **Dependency Issues:**
-  - Delete `node_modules` and `package-lock.json`/`yarn.lock`, then reinstall.
-  - For Python, recreate your virtual environment if you encounter version conflicts.
-- **Expo Errors:**
-  - Ensure you have the latest Expo CLI and compatible Node.js version.
-- **Android Build Issues:**
-  - Confirm correct keystore placement and configuration.
-  - Check Android Studio and SDK versions.
+# Install dependencies
+npm install
+# or
+yarn install
 
----
+# Start the development server
+npx expo start
+```
 
-## Contributing
+## 🔧 Configuration
+
+### Environment Variables
+Create a `.env` file in both `backend/` and `frontend/` directories with the following variables:
+
+**Backend (`.env` in backend/)**
+```env
+DATABASE_URL=postgresql://user:password@localhost:5432/quill
+SECRET_KEY=your-secret-key-here
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
+
+**Frontend (`.env` in frontend/)**
+```env
+EXPO_PUBLIC_API_URL=http://localhost:8000
+# Add other frontend environment variables here
+```
+
+## 🧪 Testing
+
+### Backend Tests
+```bash
+cd backend
+pytest
+```
+
+### Frontend Tests
+```bash
+cd frontend
+npm test
+```
+
+## 🚀 Deployment
+
+### Backend (Production)
+```bash
+# Install production dependencies
+pip install gunicorn uvicorn[standard]
+
+# Run with Gunicorn
+gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app
+```
+
+### Frontend (Production)
+```bash
+# Build the production bundle
+cd frontend
+expo build:web
+
+# The built files will be in the 'web-build' directory
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these steps:
+
 1. Fork the repository
-2. Create a new branch (`git checkout -b feature/your-feature`)
-3. Commit your changes (`git commit -am 'Add new feature'`)
-4. Push to the branch (`git push origin feature/your-feature`)
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-**Guidelines:**
-- Follow code style and linting rules.
-- Write clear commit messages.
-- Add tests for new features when possible.
-- Document any new functionality in the README.
+### Code Style
+- Follow [PEP 8](https://www.python.org/dev/peps/pep-0008/) for Python code
+- Use [Airbnb JavaScript Style Guide](https://github.com/airbnb/javascript) for React/JavaScript
+- Write meaningful commit messages following [Conventional Commits](https://www.conventionalcommits.org/)
 
----
+## 📄 License
 
-## License
-[MIT](LICENSE) (or specify your license here)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
----
+## 📚 Resources
 
-## Links
 - [Expo Documentation](https://docs.expo.dev/)
-- [React Native Docs](https://reactnative.dev/docs/getting-started)
-- [Python Official Site](https://www.python.org/)
-- [FastAPI (if used)](https://fastapi.tiangolo.com/)
-- [Android Studio](https://developer.android.com/studio)
+- [React Native Documentation](https://reactnative.dev/docs/getting-started)
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [SQLAlchemy Documentation](https://www.sqlalchemy.org/)
 
-For questions or support, please open an issue or contact the maintainers.
+## 🙋‍♂️ Support
+
+For support, please open an issue in the GitHub repository or contact the maintainers.
+
+---
+
+<div align="center">
+  Made with ❤️ by the Quill Team
+</div>
