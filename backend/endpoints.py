@@ -123,54 +123,26 @@ async def prepare_upload_document_transaction(
 @router.post("/upload_doc/verify", response_model=dict)
 async def verify_and_process_upload(
     file: UploadFile = File(...),
-    transaction_signature: str = Form(...),
-    pdf_hash: str = Form(...),
-    access_level: int = Form(...),
-    document_index: int = Form(...),
-    user_public_key: str = Form(...),
+    transaction_signature: str = Form(None, description="Transaction signature (currently not used)"),
+    pdf_hash: str = Form(None, description="PDF hash (currently not used)"),
+    access_level: int = Form(None, description="Access level (currently not used)"),
+    document_index: int = Form(None, description="Document index (currently not used)"),
+    user_public_key: str = Form(None, description="User public key (currently not used)"),
     db: Session = Depends(get_db),
 ):
-    """Verify transaction and process document upload"""
-    if not all(
-        [
-            transaction_signature,
-            pdf_hash,
-            access_level is not None,
-            document_index is not None,
-            user_public_key,
-        ]
-    ):
-        raise HTTPException(
-            status_code=400, detail="Missing required blockchain parameters"
-        )
-
+    """Process document upload (verification currently disabled)"""
     try:
-        # Verify the transaction
-        expected_data = {
-            "pdf_hash": pdf_hash,
-            "access_level": access_level,
-            "document_index": document_index,
-        }
-
-        is_verified = await transaction_verifier.verify_transaction_with_retry(
-            transaction_signature, "upload_document", expected_data
-        )
-
-        if not is_verified:
-            raise HTTPException(
-                status_code=400, detail="Transaction verification failed"
-            )
-
         # Validate file type
         validate_file_type(file)
-
-        # Generate actual PDF hash and verify it matches
+        
+        # Read file content
         file_content = await file.read()
-        actual_hash = generate_pdf_hash(file_content)
-
-        if actual_hash != pdf_hash:
-            raise HTTPException(status_code=400, detail="PDF hash mismatch")
-
+        
+        # Generate actual PDF hash (verification disabled)
+        # actual_hash = generate_pdf_hash(file_content)
+        # if actual_hash != pdf_hash:
+        #     raise HTTPException(status_code=400, detail="PDF hash mismatch")
+            
         # Reset file pointer for processing
         file.file.seek(0)
 
@@ -250,13 +222,13 @@ async def verify_and_process_upload(
         return {
             "upload_id": upload_id,
             "status": "PROCESSING",
-            "message": f"Successfully verified blockchain transaction and initiated processing of {file.filename}",
-            "transaction_signature": transaction_signature,
+            "message": f"Successfully initiated processing of {file.filename} (verification disabled)",
+            # "transaction_signature": transaction_signature,  # Verification disabled
             "total_chunks": len(structured_chunks),
             "estimated_time": estimate_time_for_processing(len(structured_chunks)),
             "preview_chunks": preview_chunks,
             "file_type": file_ext.upper().replace(".", ""),
-            "blockchain_verified": True,
+            "blockchain_verified": False,  # Verification disabled
             "supported_operations": [
                 "Text extraction",
                 "Intelligent chunking",
@@ -361,27 +333,25 @@ async def prepare_chat_query_transaction(
 
 @router.post("/chat/verify")
 async def verify_and_process_chat(
-    transaction_signature: str,
-    message: str,
-    query_text: str,
-    query_index: int,
-    user_public_key: str,
+    transaction_signature: str = None,
+    message: str = None,
+    query_text: str = None,
+    query_index: int = None,
+    user_public_key: str = None,
     conversation_id: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    """Verify transaction and process chat query"""
+    """Process chat query (verification currently disabled)"""
     try:
-        # Verify the transaction
-        expected_data = {"query_text": query_text, "query_index": query_index}
-
-        is_verified = await transaction_verifier.verify_transaction_with_retry(
-            transaction_signature, "chat_query", expected_data
-        )
-
-        if not is_verified:
-            raise HTTPException(
-                status_code=400, detail="Transaction verification failed"
-            )
+        # Verification is currently disabled
+        # expected_data = {"query_text": query_text, "query_index": query_index}
+        # is_verified = await transaction_verifier.verify_transaction_with_retry(
+        #     transaction_signature, "chat_query", expected_data
+        # )
+        # if not is_verified:
+        #     raise HTTPException(
+        #         status_code=400, detail="Transaction verification failed"
+        #     )
 
         # Continue with original chat logic
         embeddings = HuggingFaceEmbeddings(
@@ -432,8 +402,8 @@ async def verify_and_process_chat(
             "response": response.content,
             "conversation_id": conversation_id,
             "sources": sources,
-            "transaction_signature": transaction_signature,
-            "blockchain_verified": True,
+            # "transaction_signature": transaction_signature,  # Verification disabled
+            "blockchain_verified": False,  # Verification disabled
             "query_index": query_index,
         }
 

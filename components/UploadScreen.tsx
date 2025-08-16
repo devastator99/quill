@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import DocumentPicker, {
   DocumentPickerResponse,
-} from "react-native-document-picker";
+} from "@react-native-documents/picker";
 import LottieView from "lottie-react-native";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";

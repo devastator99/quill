@@ -3,12 +3,14 @@ const path = require('path');
 
 const config = getDefaultConfig(__dirname);
 
+config.resolver = config.resolver || {};
+
 // Ensure proper module resolution
 config.resolver.platforms = ['ios', 'android', 'native', 'web'];
 
 // Add resolver configuration
-config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
-
+config.resolver.resolverMainFields = ['react-native', 'browser', 'main','module'];
+config.resolver.sourceExts = Array.from(new Set(['cjs', ...config.resolver.sourceExts]));
 // Add path alias configuration
 config.resolver.extraNodeModules = {
   ...config.resolver.extraNodeModules,
