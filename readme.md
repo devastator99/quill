@@ -59,7 +59,7 @@ quill/
 ### For Development
 - Node.js 16.x or higher
 - Python 3.8+
-- npm (v7+) or yarn
+- npm (v7+)
 - Expo CLI (`npm install -g expo-cli`)
 - Git
 
