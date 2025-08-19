@@ -1,30 +1,55 @@
 import base64
+import base58  # Added missing import
+import json
+import logging
 import os
 import uuid as uuid_lib
-from typing import List, Optional, Tuple
-from fastapi import Form
-from tempfile import NamedTemporaryFile
-from solathon import PublicKey
-import jwt
+from collections import defaultdict
 from datetime import datetime, timedelta
+from tempfile import NamedTemporaryFile
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
+
+import jwt
 import nacl.signing
 from fastapi import (
     APIRouter,
     Depends,
+    File,
+    Form,
     HTTPException,
     UploadFile,
-    File,
     WebSocket,
     WebSocketDisconnect,
+    status,
 )
-from sqlalchemy.orm import Session
-from solathon import Transaction
-from collections import defaultdict
-import asyncio
+from fastapi.responses import JSONResponse
 from langchain.schema import Document
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores.pgvector import PGVector
 from langchain_openai import ChatOpenAI
+from pydantic import BaseModel, HttpUrl
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm.exc import NoResultFound
+
+from solathon import PublicKey, Transaction
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Custom exceptions
+class DatabaseError(Exception):
+    """Raised when a database operation fails."""
+    pass
+
+class ProcessingError(Exception):
+    """Raised when document processing fails."""
+    pass
+
+class NotFoundError(Exception):
+    """Raised when a requested resource is not found."""
+    pass
 
 from config import DATABASE_URL, OPENAI_API_KEY, OPENAI_API_BASE
 from database import get_db
@@ -413,47 +438,213 @@ async def verify_and_process_chat(
         raise HTTPException(status_code=500, detail=f"Chat processing error: {str(e)}")
 
 
-@router.post("/login")
-async def login(data: LoginData):
-    public_key = data.publicKey
-    signature = data.signature
-    message = "Login to DocChatApp"
+@router.post(
+    "/login",
+    response_model=Dict[str, str],
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {"description": "Invalid signature or credentials"},
+        status.HTTP_400_BAD_REQUEST: {"description": "Invalid request data"},
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Internal server error"},
+    },
+    summary="User Login",
+    description="Authenticate user using Solana wallet signature and return JWT token",
+)
+async def login(data: LoginData) -> Dict[str, str]:
+    """
+    Authenticate a user using their Solana wallet signature and return a JWT token.
+    
+    Args:
+        data (LoginData): The login request data containing public key and signature
+        
+    Returns:
+        Dict[str, str]: A dictionary containing the JWT token
+        
+    Raises:
+        HTTPException: If authentication fails or an error occurs
+    """
     try:
-        pubkey_bytes = PublicKey(public_key).to_bytes()
-        signature_bytes = base58.b58decode(signature)
-        message_bytes = message.encode()
+        # Input validation
+        if not all([data.publicKey, data.signature]):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Public key and signature are required"
+            )
+            
+        # Constants
+        AUTH_MESSAGE = "Login to DocChatApp"
+        TOKEN_EXPIRE_MINUTES = int(os.getenv("TOKEN_EXPIRE_MINUTES", "30"))
+        SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+        
+        if not SECRET_KEY:
+            logger.error("JWT_SECRET_KEY not configured")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Server configuration error"
+            )
 
-        verify_key = nacl.signing.VerifyKey(pubkey_bytes)
-        verify_key.verify(message_bytes, signature_bytes)
+        # Verify signature
+        try:
+            pubkey_bytes = PublicKey(data.publicKey).to_bytes()
+            signature_bytes = base58.b58decode(data.signature)
+            message_bytes = AUTH_MESSAGE.encode()
 
-        # Define JWT secret key and algorithm (should be in config/env vars)
-        SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-super-secret-key") # TODO: Move to config.py or environment variable
-        ALGORITHM = "HS256"
+            verify_key = nacl.signing.VerifyKey(pubkey_bytes)
+            verify_key.verify(message_bytes, signature_bytes)
+        except (ValueError, nacl.exceptions.BadSignatureError) as e:
+            logger.warning(f"Signature verification failed: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid signature"
+            )
 
-        # Create JWT payload
+        # Create JWT payload with additional claims
+        expiration = datetime.utcnow() + timedelta(minutes=TOKEN_EXPIRE_MINUTES)
         to_encode = {
-            "sub": public_key,
-            "exp": datetime.utcnow() + timedelta(minutes=30)  # Token expires in 30 minutes
+            "sub": data.publicKey,
+            "exp": expiration,
+            "iat": datetime.utcnow(),
+            "type": "access"
         }
 
-        # Generate JWT token
-        encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-        return {"token": encoded_jwt}
+        # Generate JWT token with secure settings
+        encoded_jwt = jwt.encode(
+            to_encode,
+            SECRET_KEY,
+            algorithm="HS256"
+        )
+        
+        logger.info(f"Successfully generated JWT for public key: {data.publicKey[:8]}...")
+        
+        return {
+            "token": encoded_jwt,
+            "token_type": "bearer",
+            "expires_in": TOKEN_EXPIRE_MINUTES * 60  # in seconds
+        }
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+        
     except Exception as e:
-        print(f"Verification error: {e}")
-        raise HTTPException(status_code=401, detail="Invalid signature")
+        logger.error(f"Unexpected error during login: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during login"
+        )
 
 
-@router.websocket("/ws/chat")
-async def websocket_endpoint(websocket: WebSocket):
+class WebSocketMessage(BaseModel):
+    """WebSocket message model for chat."""
+    type: str  # e.g., 'message', 'typing', 'presence'
+    content: Optional[Dict[str, Any]] = None
+    sender: Optional[str] = None
+    timestamp: datetime = datetime.utcnow()
+
+
+@router.websocket(
+    "/ws/chat",
+    name="Chat WebSocket",
+    description="WebSocket endpoint for real-time chat functionality"
+)
+async def websocket_endpoint(websocket: WebSocket) -> None:
+    """
+    Handle WebSocket connections for real-time chat.
+    
+    This endpoint manages the WebSocket connection lifecycle, including:
+    - Connection establishment
+    - Message broadcasting
+    - Error handling
+    - Connection cleanup
+    
+    Args:
+        websocket: The WebSocket connection instance
+        
+    Raises:
+        WebSocketDisconnect: When the client disconnects
+        WebSocketException: For WebSocket protocol errors
+    """
+    # Accept the WebSocket connection
     await ws_manager.connect(websocket)
+    client_id = id(websocket)
+    logger.info(f"New WebSocket connection established: {client_id}")
+    
     try:
+        # Send connection acknowledgment
+        await websocket.send_json({
+            "type": "connection_established",
+            "message": "Successfully connected to chat server",
+            "client_id": str(client_id),
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        
         while True:
-            data = await websocket.receive_text()
-            await ws_manager.broadcast(data)
-    except WebSocketDisconnect:
-        await ws_manager.disconnect(websocket)
+            try:
+                # Receive message with timeout
+                data = await asyncio.wait_for(
+                    websocket.receive_text(),
+                    timeout=300  # 5 minutes timeout
+                )
+                
+                # Parse and validate message
+                try:
+                    message = json.loads(data)
+                    if not isinstance(message, dict):
+                        raise ValueError("Message must be a JSON object")
+                    
+                    # Broadcast message to all connected clients
+                    await ws_manager.broadcast({
+                        "type": "message",
+                        "content": message.get("content", ""),
+                        "sender": message.get("sender", "anonymous"),
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
+                    
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Invalid JSON received: {data}")
+                    await websocket.send_json({
+                        "type": "error",
+                        "error": "Invalid JSON format",
+                        "details": str(e)
+                    })
+                except ValueError as e:
+                    logger.warning(f"Invalid message format: {e}")
+                    await websocket.send_json({
+                        "type": "error",
+                        "error": "Invalid message format",
+                        "details": str(e)
+                    })
+                
+            except asyncio.TimeoutError:
+                # Send ping to check if client is still alive
+                try:
+                    await websocket.send_json({
+                        "type": "ping",
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
+                except Exception as e:
+                    logger.warning(f"Ping failed for client {client_id}: {e}")
+                    break
+                    
+    except WebSocketDisconnect as e:
+        logger.info(f"WebSocket client disconnected: {client_id}, code: {e.code}")
+    except Exception as e:
+        logger.error(f"WebSocket error for client {client_id}: {str(e)}", exc_info=True)
+        try:
+            await websocket.send_json({
+                "type": "error",
+                "error": "Internal server error",
+                "details": str(e)
+            })
+        except:
+            pass  # Client may have already disconnected
+    finally:
+        # Ensure proper cleanup
+        try:
+            await ws_manager.disconnect(websocket)
+            logger.info(f"WebSocket connection closed for client {client_id}")
+        except Exception as e:
+            logger.error(f"Error during WebSocket cleanup: {str(e)}")
 
 
 @router.get("/health")
