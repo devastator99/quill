@@ -1,23 +1,24 @@
+// babel.config.js
 module.exports = function (api) {
   api.cache(true);
   return {
-    presets: ["babel-preset-expo"],
+    presets: ['babel-preset-expo'],
     plugins: [
-      "react-native-reanimated/plugin",
-      [
-        "module-resolver",
-        ["babel-plugin-transform-import-meta", { replace: { module: {} } }],
-
-        {
-          alias: {
-            // Steer these packages to their CJS files
-            multiformats: "multiformats/cjs/src/index.js",
-            "rpc-websockets": "rpc-websockets/dist/index.cjs",
-            // Force noble to a file that doesn't rely on import.meta
-            "@noble/hashes/crypto.js": "@noble/hashes/lib/crypto.js",
-          },
+      ['module-resolver', {
+        // root: ['.'], // optional, add if you need absolute imports from project root
+        alias: {
+          // Steer these packages to their CJS files
+          multiformats: './node_modules/multiformats/cjs',
+          'rpc-websockets': './node_modules/rpc-websockets/dist/index.cjs',
+          // Force noble to a file that doesn't rely on import.meta
+          '@noble/hashes/crypto.js': '@noble/hashes/lib/crypto.js',
         },
-      ],
+        extensions: ['.ts', '.tsx', '.js', '.json'],
+      }],
+
+      ['babel-plugin-transform-import-meta', { module: 'CommonJS' }],
+
+      'react-native-reanimated/plugin',
     ],
   };
 };

@@ -20,7 +20,6 @@
     "@expo-google-fonts/inter": "^0.4.1",
     "@expo-google-fonts/sora": "^0.4.1",
     "@expo-google-fonts/urbanist": "^0.4.1",
-    "@expo/config-plugins": "^10.1.2",
     "@expo/plist": "^0.3.5",
     "@expo/vector-icons": "^14.1.0",
     "@gorhom/bottom-sheet": "^5.1.6",
@@ -33,11 +32,6 @@
     "@react-navigation/drawer": "^7.1.1",
     "@react-navigation/native": "^7.0.14",
     "@shopify/flash-list": "1.7.6",
-    "@solana-mobile/wallet-adapter-mobile": "^2.2.2",
-    "@solana/wallet-adapter-base": "^0.9.27",
-    "@solana/wallet-adapter-react": "^0.15.39",
-    "@solana/wallet-adapter-react-ui": "^0.9.39",
-    "@solana/wallet-adapter-wallets": "^0.19.37",
     "@solana/web3.js": "^1.98.2",
     "@supabase/supabase-js": "^2.50.3",
     "@types/cors": "^2.8.19",
@@ -84,6 +78,7 @@
     "metro-resolver": "^0.82.5",
     "metro-runtime": "^0.82.5",
     "moti": "^0.30.0",
+    "multiformats": "^9.9.0",
     "nativewind": "^4.1.23",
     "openai": "^5.10.2",
     "path-scurry": "2.0.0",
@@ -106,7 +101,9 @@
     "react-native-webview": "13.13.5",
     "react-qr-code": "^2.0.18",
     "tailwindcss-animate": "^1.0.7",
-    "tus-js-client": "^4.3.1"
+    "tus-js-client": "^4.3.1",
+    "uint8arrays": "^4.0.10",
+    "@expo/config-plugins": "~10.1.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
