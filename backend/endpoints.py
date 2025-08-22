@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from tempfile import NamedTemporaryFile
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
-
+import asyncio
 import jwt
 import nacl.signing
 from fastapi import (
@@ -544,8 +544,7 @@ class WebSocketMessage(BaseModel):
 
 @router.websocket(
     "/ws/chat",
-    name="Chat WebSocket",
-    description="WebSocket endpoint for real-time chat functionality"
+    name="Chat WebSocket"
 )
 async def websocket_endpoint(websocket: WebSocket) -> None:
     """
